@@ -756,10 +756,10 @@ int main(int argc, char *argv[])
   Fl::scheme("plastic");
   Fl::background(182, 198, 255);
   Fl::get_system_colors();
-  fl_force_wrap_breaks=1;
+  //fl_force_wrap_breaks=1;
   //Fl::copy_labels(TRUE);
   FL_NORMAL_SIZE=12;
-  Fl::new_shortcut_logic=true;
+  //Fl::new_shortcut_logic=true;
 
 	opterr = 0;
 
