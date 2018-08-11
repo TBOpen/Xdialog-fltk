@@ -45,6 +45,72 @@ static char *getTag(char *input)
 
 //-------------------------------------------------------------------------
 
+static void OutputTree()
+{
+	Fl_Tree *tree=(Fl_Tree *)Xdialog.widget1;
+	for(int i=0;i<glist_size;i++) {
+		if(tree->is_selected(Xdialog.array[i].tips)==1)
+			fprintf(Xdialog.output, "%s\n",Xdialog.array[i].tag);
+	}
+}
+
+//-------------------------------------------------------------------------
+
+static void OutputChecklist()
+{
+	Fl_Check_Browser *check_browser=(Fl_Check_Browser *)Xdialog.widget1;
+	bool firstprint=true;
+	for(int i=0; i<check_browser->nitems(); ) {
+		i++;
+		if (check_browser->checked(i)==1) {
+			if (firstprint)
+				firstprint=false;
+			else
+				fprintf(Xdialog.output, " ");
+			fprintf(Xdialog.output, "%s", Xdialog.array[i-1].tag);
+		}
+	}
+}
+
+//-------------------------------------------------------------------------
+
+static void OutputTimeBox()
+{
+	Fl_Spinner *spinner1=(Fl_Spinner *)Xdialog.widget1;
+	Fl_Spinner *spinner2=(Fl_Spinner *)Xdialog.widget2;
+	Fl_Spinner *spinner3=(Fl_Spinner *)Xdialog.widget3;
+	int hours=spinner1->value();
+	int mins=spinner2->value();
+	int seconds=spinner3->value();
+	fprintf(Xdialog.output,"time %d:%d:%d\n",hours,mins,seconds);
+}
+
+//-------------------------------------------------------------------------
+
+static void OutputBuildList()
+{
+	Fl_Browser *second = (Fl_Browser *)Xdialog.widget2;
+	for(int i=1;i<second->size()+1;i++) {
+		// find what tag it is by looking for name
+		int index=(int) second->data(i);
+		fprintf(Xdialog.output,"|%s", Xdialog.array[index].tag);
+	}
+}
+
+//-------------------------------------------------------------------------
+
+static void OutputMenuBox()
+{
+	Fl_Browser *input=(Fl_Browser *)Xdialog.widget1;
+	for(int i=1;i<input->size()+1;i++) {
+		if(input->selected(i)==1) {
+			fprintf(Xdialog.output,"%s",Xdialog.array[i-1].tag);
+		}
+	}
+}
+
+//-------------------------------------------------------------------------
+
 void click_yes(Fl_Widget *o, void*)
 {
 	if (Xdialog.check) {
@@ -54,21 +120,24 @@ void click_yes(Fl_Widget *o, void*)
 			fprintf(Xdialog.output, "unchecked\n");
 	}
 
-	Xdialog.exit_code = 0;
-	if(Xdialog.type==1)	{
-	  Fl_Input *input=(Fl_Input *)Xdialog.widget1;
-	 fprintf(Xdialog.output,"%s",input->value());
-	 fprintf(Xdialog.output,"\n");
+	Xdialog.exit_code = XDIALOG_PRESS_YES;
+
+	if(Xdialog.type==XDIALOG_TYPE_INPUT)	{
+		Fl_Input *input=(Fl_Input *)Xdialog.widget1;
+		fprintf(Xdialog.output,"%s",input->value());
+		fprintf(Xdialog.output,"\n");
 	}
 
-	if(Xdialog.type==2)	{
+	/* No output for textbox
+	if(Xdialog.type==XDIALOG_TYPE_EDIT_READONLY)	{
 	  Fl_Multiline_Output *input;
 	  input=(Fl_Multiline_Output *)Xdialog.widget1;
 	 fprintf(Xdialog.output,"%s",input->value());
 	 fprintf(Xdialog.output,"\n");
 	}
+	*/
 
-	if(Xdialog.type==3)	{
+	if(Xdialog.type==XDIALOG_TYPE_EDIT)	{
 	  Fl_Text_Editor *input;
 	  input=(Fl_Text_Editor *)Xdialog.widget1;
 	  Fl_Text_Buffer *buffer=input->buffer();
@@ -76,7 +145,7 @@ void click_yes(Fl_Widget *o, void*)
 	  fprintf(Xdialog.output,"\n");
 	}
 
-	if(Xdialog.type==4)	{
+	if(Xdialog.type==XDIALOG_TYPE_MENU)	{
 	  Fl_Browser *input=(Fl_Browser *)Xdialog.widget1;
 	  for(int i=0;i<input->size()+1;i++) {
 	    if(input->selected(i)==1) {
@@ -86,57 +155,24 @@ void click_yes(Fl_Widget *o, void*)
 	  }
 	}
 
-	if(Xdialog.type==5) {
-	  Fl_Tree *tree=(Fl_Tree *)Xdialog.window->child(0);
-	  for(int i=0;i<glist_size;i++) {
-	    if(tree->is_selected(Xdialog.array[i].tips)==1)
-	      printf("%s\n",Xdialog.array[i].tag);
-    }
+	if(Xdialog.type==XDIALOG_TYPE_TREE) {
+			OutputTree();
 	}
 
-	if(Xdialog.type==6)	{
-	  Fl_Spinner *spinner1=(Fl_Spinner *)Xdialog.widget1;
-	  Fl_Spinner *spinner2=(Fl_Spinner *)Xdialog.widget2;
-	  Fl_Spinner *spinner3=(Fl_Spinner *)Xdialog.widget3;
-	  int hours=spinner1->value();
-	  int mins=spinner2->value();
-	  int seconds=spinner3->value();
-	  fprintf(Xdialog.output,"time %d:%d:%d\n",hours,mins,seconds);
+	if(Xdialog.type==XDIALOG_TYPE_TIME)	{
+		OutputTimeBox();
 	}
 
-	if(Xdialog.type==7)	{
-	  char *outString=new char[MAX_LABEL_LENGTH];
-	  outString[0]=0;
-	  Fl_Browser *second = (Fl_Browser *)Xdialog.window->child(1);
-	  for(int i=1;i<second->size()+1;i++) {
-	    char *temp=new char[50];
-	    temp[0]=0;
-	    strcpysafe(temp,(char*)second->text(i),MAX_LABEL_LENGTH);
-	    char *tag=getTag(temp);
-	    strcat(outString,tag);
-	    strcat(outString,"|");
-	  }
-	  outString[strlen(outString)-1]='\0';
-	  fprintf(Xdialog.output,"%s",outString);
+	if(Xdialog.type==XDIALOG_TYPE_BROWSERLIST)	{
+		OutputBuildList();
 	}
 
-	if(Xdialog.type==8)	{
-	  Fl_Check_Browser *check_browser=(Fl_Check_Browser *)Xdialog.window->child(0);
-	  char *outString=new char[MAX_LABEL_LENGTH];
-	  outString[0]=0;
-	  for(int i=1;i<check_browser->nitems()+1;i++) {
-	    if(check_browser->checked(i)==1) {
-	    strcat(outString,check_browser->text(i));
-	    strcat(outString,"/");
-
-	    }
-	  }
-	  outString[strlen(outString)-1]='\0';
-	  fprintf(Xdialog.output,"%s",outString);
+	if(Xdialog.type==XDIALOG_TYPE_CHECKLIST)	{
+		OutputChecklist();
 	}
 
-	if(Xdialog.type==9) {
-	  Fl_Slider *slider=(Fl_Slider *)Xdialog.window->child(0);
+	if(Xdialog.type==XDIALOG_TYPE_RANGEBOX) {
+	  Fl_Slider *slider=(Fl_Slider *)Xdialog.widget1;
 	  printf("%d\n",(int)slider->value());
 	}
 
@@ -147,7 +183,7 @@ void click_yes(Fl_Widget *o, void*)
 
 void click_no(Fl_Widget *o, void*)
 {
-	Xdialog.exit_code = 1;
+	Xdialog.exit_code = XDIALOG_PRESS_NO;
 	Xdialog.window->hide();
 }
 
@@ -177,7 +213,7 @@ void click_next(Fl_Widget *o, void*)
 
 void click_help(Fl_Widget *o, void*)
 {
-	Xdialog.exit_code = 2;
+	Xdialog.exit_code = XDIALOG_PRESS_HELP;
 	Xdialog.window->hide();
 }
 
@@ -221,14 +257,15 @@ void CheckCallback(Fl_Widget *o, void *)
 void HidetypingCallback(Fl_Widget *o,void *data)
 {
 	int type_mode = o->type();
-	if (o->parent()->child(0)->type()!= FL_SECRET_INPUT) {
-		o->parent()->child(0)->type(FL_SECRET_INPUT);
-		o->parent()->child(0)->redraw();
+	Fl_Input *input=(Fl_Input*) Xdialog.widget1;
+	if (input->type()!= FL_SECRET_INPUT) {
+		input->type(FL_SECRET_INPUT);
+		input->redraw();
 	}
 	else
 	{
-		o->parent()->child(0)->type(FL_NORMAL_INPUT);
-		o->parent()->child(0)->redraw();
+		input->type(FL_NORMAL_INPUT);
+		input->redraw();
 	}
 }
 
@@ -236,8 +273,8 @@ void HidetypingCallback(Fl_Widget *o,void *data)
 
 void OutputCallback_rangebox(void *)
 {
-	Fl_Box *slider = (Fl_Box *)Xdialog.window->child(0);
-	printf("%s\n", slider->label());
+	Fl_Box *slider = (Fl_Box *)Xdialog.widget1;
+	fprintf(Xdialog.output, "%s\n", slider->label());
 	Fl::repeat_timeout(Xdialog.interval/1000,OutputCallback_rangebox);
 }
 
@@ -256,39 +293,18 @@ void sliderCallback(Fl_Object *o,void *data)
 
 //-------------------------------------------------------------------------
 
-void OutputCallback_ItemList(void *)
+void OutputCallback_CheckList(void *)
 {
-	Fl_Check_Browser *browser = (Fl_Check_Browser *)Xdialog.window->child(0);
-	char *temp = new char[128];
-	temp[0] = 0;
-	for (int i = 1; i <= browser->nitems(); i++) {
-		if (browser->checked(i) == 1)	{
-			strcatsafe(temp, Xdialog.array[i - 1].tag, 128);
-			strcatsafe(temp, "/", 128);
-		}
-	}
-
-	if (temp!="")	{
-		temp[strlen(temp) - 1] = 0;
-		printf("%s\n", temp);
-	}
-
-	Fl::repeat_timeout(Xdialog.interval / 1000, OutputCallback_ItemList);
+	OutputChecklist();
+	Fl::repeat_timeout(Xdialog.interval / 1000, OutputCallback_CheckList);
 }
 
 //-------------------------------------------------------------------------
 
+
 void OutputCallback_menubox(void *)
 {
-	Fl_Browser *browser = (Fl_Browser *)Xdialog.widget1;
-	int a = browser->size();
-	for (int i = 0; i<browser->size();i++)
-	{
-		if (browser->selected(i+1)==1)
-		{
-			printf("%s\n",Xdialog.array[i].tag);
-		}
-	}
+	OutputMenuBox();
 	Fl::repeat_timeout(Xdialog.interval/1000,OutputCallback_menubox);
 }
 
@@ -296,17 +312,24 @@ void OutputCallback_menubox(void *)
 
 void OutputCallback_timebox(void *)
 {
-	int hours = 0;
-	int mins = 0;
-	int seconds = 0;
-	Fl_Spinner *hour = (Fl_Spinner *)Xdialog.window->child(1);
-	Fl_Spinner *min = (Fl_Spinner *)Xdialog.window->child(2);
-	Fl_Spinner *second = (Fl_Spinner *)Xdialog.window->child(3);
-	hours = hour->value();
-	mins = min->value();
-	seconds = second->value();
-	printf("%d:%d:%d\n",hours,mins,seconds);
+	OutputTimeBox();
 	Fl::repeat_timeout(Xdialog.interval/1000,OutputCallback_timebox);
+}
+
+//-------------------------------------------------------------------------
+
+void OutputCallback_BuildList(void *)
+{
+	OutputBuildList();
+	Fl::repeat_timeout(Xdialog.interval / 1000, OutputCallback_BuildList);
+}
+
+//-------------------------------------------------------------------------
+
+void OutputCallback_treeview(void *)
+{
+	OutputTree();
+	Fl::repeat_timeout(Xdialog.interval / 1000, OutputCallback_treeview);
 }
 
 //-------------------------------------------------------------------------
@@ -316,23 +339,19 @@ void AddCallback(Fl_Widget *o,void *)
 	int check_state=0;
 	int check_index=0;
 	char *selected_item=new char[MAX_LABEL_LENGTH];
+
 	Fl_Button *add = (Fl_Button *)o;
-	Fl_Button *remove = (Fl_Button *)o->parent()->child(3);
-	Fl_Browser *first = (Fl_Browser *)o->parent()->child(0);
-	Fl_Browser *second = (Fl_Browser *)o->parent()->child(1);
-	int size=first->size();
-	for(int i=1;i<=size;i++) {
+	Fl_Button *remove = (Fl_Button*) Xdialog.widget4;
+	Fl_Browser *first = (Fl_Browser*) Xdialog.widget1;
+	Fl_Browser *second = (Fl_Browser*) Xdialog.widget2;
+
+	for(int i=1;i<=first->size();) {
 	  if(first->selected(i)==1) {
 	    const char *temp=first->text(i);
-	    second->add(temp);
-	  }
-	}
-
-	for(int i=1;i<=size;i++) {
-	  if(first->selected(i)==1) {
+	    second->add(temp, first->data(i));
 	    first->remove(i);
-	    i=0;
 	  }
+	  else i++;
 	}
 
 	if(first->size()==0)
@@ -355,22 +374,19 @@ void RemoveCallback(Fl_Widget *o, void *)
 	int check_state=0;
 	int check_index=0;
 	char *selected_item=new char[MAX_LABEL_LENGTH];
+
 	Fl_Button *remove = (Fl_Button *)o;
-	Fl_Button *add = (Fl_Button *)o->parent()->child(2);
-	Fl_Browser *first = (Fl_Browser *)o->parent()->child(0);
-	Fl_Browser *second = (Fl_Browser *)o->parent()->child(1);
-	int size=second->size();
-	for(int i=1;i<=size;i++) {
+	Fl_Button *add = (Fl_Button*) Xdialog.widget3;
+	Fl_Browser *first = (Fl_Browser*) Xdialog.widget1;
+	Fl_Browser *second = (Fl_Browser*) Xdialog.widget2;
+
+	for(int i=1;i<=second->size();) {
 	  if(second->selected(i)==1) {
 	    const char *temp=second->text(i);
-	    first->add(temp);
-	  }
-	}
-	for(int i=1;i<=size;i++) {
-	  if(second->selected(i)==1) {
+	    first->add(temp, second->data(i));
 	    second->remove(i);
-	    i=0;
 	  }
+	  else i++;
 	}
 
 	if(first->size()==0)
@@ -399,51 +415,49 @@ void gauge_timeout(void *)
 {
   char temp[MY_SCANF_BUFSIZE];
   int ret;
-  ret=my_scanf(temp);
-  int new_val=0;
-  if (ret == EOF && !Xdialog.ignore_eof)
-	return click_yes(NULL, NULL);
-  if (ret != 1)
-	return ;
-  if (!Xdialog.new_label && strcmp(temp, "XXX")) {
-	new_val = (float) atoi(temp);
-	Fl_Progress *temp_pro=(Fl_Progress *)Xdialog.widget1;
-	temp_pro->value(new_val);
-	char *label_value=new char[5];
-	sprintf(label_value,"%d%%",new_val);
-	temp_pro->label(label_value);
-	//printf("log1\n");
-  } else {
-	if (strcmp(temp, "XXX") == 0) {
-		if (Xdialog.new_label) {
-			//printf("new labe %s\n",Xdialog.label_text);
-			Fl_Box *temp_box=(Fl_Box *)Xdialog.widget4;
-			temp_box->labelfont(0);
-			temp_box->labelcolor(FL_BLACK);
-			temp_box->align(FL_ALIGN_WRAP);
-			temp_box->labelsize(17);
-			temp_box->label(Xdialog.label_text);
-			temp_box->redraw();
-			//Xdialog.label_text[0] = 0 ;
-			Xdialog.new_label = false;
-		} else {
-			Xdialog.new_label = true;
-			//printf("log2\n");
-		}
-	} else {
 
-		if (strlen(Xdialog.label_text)+strlen(temp)+2 < MAX_LABEL_LENGTH) {
-			if (strcmp(temp, "\\n") == 0) {
-				strcat(Xdialog.label_text, "\n");
-				//printf("log3\n");
-				} else {
-					strcat(Xdialog.label_text, " ");
-					strcat(Xdialog.label_text, temp);
-					//printf("log4\n");
+  do {
+		ret=my_scanf(temp);
+
+		if (ret == EOF && !Xdialog.ignore_eof)
+			return click_yes(NULL, NULL);
+
+		if (ret == 1) {
+			int new_val=0;
+			bool toggle=(strcmp(temp, "XXX")==0);
+
+			if (!Xdialog.new_label && !toggle) {
+				new_val = (float) atoi(temp);
+				Fl_Progress *temp_pro=(Fl_Progress *)Xdialog.widget1;
+				temp_pro->value(new_val);
+				char *label_value=new char[5];
+				sprintf(label_value,"%d%%",new_val);
+				temp_pro->label(label_value);
+			}
+			else {
+				if (toggle) {
+					if (Xdialog.new_label) {
+						Fl_Box *temp_box=(Fl_Box *)Xdialog.widget4;
+						char *oldlabel=(char*) temp_box->label();
+						char *newlabel=new char[MAX_LABEL_LENGTH];
+						backslash_n_to_linefeed(Xdialog.label_text, newlabel, MAX_LABEL_LENGTH);
+						temp_box->label(newlabel);
+						Xdialog.label_text[0]=0;
+						delete[] oldlabel;
+						temp_box->redraw();
+						Xdialog.new_label = false;
+					}
+					else {
+						Xdialog.new_label = true;
+					}
+				}
+				else {
+					// myscanf seems to skip "\n" input by putting "\" on one line and "n" on another works.
+					strcatsafe(Xdialog.label_text, temp, MAX_LABEL_LENGTH);
 				}
 			}
 		}
-	}
-  Fl::repeat_timeout(1,gauge_timeout);
+  } while(ret==1);
 
+	Fl::repeat_timeout(1, gauge_timeout);
 }

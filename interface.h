@@ -87,9 +87,19 @@
 #define MAX_FILENAME_LENGTH 256
 #define MAX_PRTNAME_LENGTH 64
 #define MAX_PRTCMD_LENGTH MAX_PRTNAME_LENGTH+32
-#define BUTTON_HEIGHT 50
-#define BACKTITLE_HEIGHT 30
 #define CHECK_BUTTON_HEIGHT 10
+#define SLIDER_HEIGHT 30
+#define SPINNER_HEIGHT 20
+#define SPINNER_WIDTH 50
+#define CLIENT_BORDER_SIZE 10
+#define BORDER_SIZE 5
+#define LABEL_TEXT_HEIGHT 14
+#define XDIALOG_BUTTON_HEIGHT 25
+#define XDIALOG_BUTTON_WIDTH 80
+
+
+#define XDIALOG_MAX_BUTTONS 4
+
 /* The following defines should be changed via the "configure" options, type:
 *    ./configure --help
 * to learn more about these options.
@@ -170,6 +180,22 @@
 #define BEEP_BEFORE 1
 #define BEEP_AFTER  2
 
+#define XDIALOG_PRESS_YES           0
+#define XDIALOG_PRESS_NO						1
+#define XDIALOG_PRESS_HELP          2
+
+
+#define XDIALOG_TYPE_INPUT          1
+#define XDIALOG_TYPE_EDIT_READONLY 	2
+#define XDIALOG_TYPE_EDIT						3
+#define XDIALOG_TYPE_MENU           4
+#define XDIALOG_TYPE_TREE					  5
+#define XDIALOG_TYPE_TIME           6
+#define XDIALOG_TYPE_BROWSERLIST 		7
+#define XDIALOG_TYPE_CHECKLIST 			8
+#define XDIALOG_TYPE_RANGEBOX 			9
+
+
 ///////////
 
 #define FALSE 0
@@ -225,9 +251,10 @@ typedef struct	{
 	bool	cr_wrap;				/* TRUE to wrap at linefeeds */
 	bool	fixed_font;				/* TRUE if fixed font to be used in text */
 	bool	tags;					/* TRUE if tags to be displayed in menu/list */
-	bool	buttons;				/* FALSE to prevent setting up buttons */
+	int		buttons;			/* TRUE if display buttons */
 	bool	ok_button;				/* FALSE to prevent setting up OK button in tailbox/logbox */
-	bool	cancel_button;				/* FALSE to prevent setting up Cancel button */
+	bool	cancel_button;		/* FALSE to prevent setting up Cancel button */
+	bool  yesno_button;		/* TRUE if ok/cancel are yes/no */
 	bool	help;					/* TRUE to setup the Help button */
 	bool	default_no;				/* When TRUE No/Cancel is the default button */
 	bool	wizard;					/* TRUE to setup Wizard buttons */

@@ -20,6 +20,7 @@
 #include "callbacks.h"
 #include "support.h"
 
+
 /* Global structure and variables */
 extern Xdialog_data Xdialog;
 extern gboolean dialog_compat;
@@ -27,15 +28,18 @@ extern gboolean dialog_compat;
 int glist_size=0;
 
 
-/* Fixed font loading and character size (in pixels) initialisation */
+/* Fixed font loading and character size (in pixels) initialization */
 
 static gint xmult = XSIZE_MULT;
 static gint ymult = YSIZE_MULT;
 static gint ffxmult = XSIZE_MULT;
 static gint ffymult = YSIZE_MULT;
 
-
 static int count_line=0;
+
+
+static int create_buttons(int next_y=0);
+
 
 //-------------------------------------------------------------------------
 
@@ -65,11 +69,11 @@ public:
 static void font_init(void)
 {
 	// select our font
-  fl_font(FL_BOLD,14);
+  fl_font(FL_BOLD, LABEL_TEXT_HEIGHT);
   int width, height;
   fl_measure(ALPHANUM_CHARS, width, height);
   ffxmult = width / 62;		/* 62 = strlen(ALPHANUM_CHARS) */
-	ffymult = height + 2;		/*  2 = spacing pixel lines */
+	ffymult = height;
 
   xmult = ffxmult;
 	ymult = ffymult;
@@ -151,18 +155,26 @@ static char * removeBackSlash(char *input)
 
 //-------------------------------------------------------------------------
 
+int get_label_height(const char *label_text, int width, int &height)
+{
+	char text[MAX_LABEL_LENGTH];
+	backslash_n_to_linefeed(label_text, text, MAX_LABEL_LENGTH);
+	//strcpysafe(text, label_text, MAX_LABEL_LENGTH);
+	//removeBackSlash(text);
+	trim_string(NULL, text, MAX_LABEL_LENGTH);
+	fl_measure(text, width, height);
+}
+
+//-------------------------------------------------------------------------
+
 static Fl_Box *set_label(const char *label_text, bool expand ,int x,int y,int w,int h)
 {
-
-	int _x=0,_y=0;
 	char *text=new char[MAX_LABEL_LENGTH];
-	int icon_width = 0;
-	strcpysafe(text, label_text, MAX_LABEL_LENGTH);
-	removeBackSlash(text);
+	backslash_n_to_linefeed(label_text, text, MAX_LABEL_LENGTH);
+	//strcpysafe(text, label_text, MAX_LABEL_LENGTH);
+	//removeBackSlash(text);
 	trim_string(NULL, text, MAX_LABEL_LENGTH);
-	fl_measure(text,_x,_y);
-	Fl_Box *text_box = new Fl_Box(x+10,y,w-20,h,0);
-	text_box->labelsize(14);
+	Fl_Box *text_box = new Fl_Box(x,y,w,h,0);
 	text_box->labelcolor(FL_BLACK);
 	text_box->align(FL_ALIGN_WRAP);
 	text_box->label(text);
@@ -173,25 +185,16 @@ static Fl_Box *set_label(const char *label_text, bool expand ,int x,int y,int w,
 
 static int item_status( char *status, char *tag)
 {
-#ifdef HAVE_STRCASECMP
-		if (!strcasecmp(status, "on") && strlen(tag) != 0)
+    if (tag[0] == 0) {
+			return -2;
+    }
+
+		if (!strcasecmp(status, "on"))
 			return 1;
 
-		if (!strcasecmp(status, "unavailable") || strlen(tag) == 0) {
+		if (!strcasecmp(status, "unavailable")) {
 			return -1;
 		}
-#else
-		if ((!strcmp(status, "on") ||
-		     !strcmp(status, "On") ||
-		     !strcmp(status, "ON")) && strlen(tag) != 0)
-			return 1;
-
-		if (!strcmp(status, "unavailable") ||
-		    !strcmp(status, "Unavailable") ||
-		    !strcmp(status, "UNAVAILABLE") || strlen(tag) == 0) {
-			return -1;
-		}
-#endif
 		return 0;
 }
 
@@ -199,8 +202,10 @@ static int item_status( char *status, char *tag)
 
 static void set_timeout(void)
 {
-	if (Xdialog.timeout > 0)
+	if (Xdialog.timeout > 0) {
+		Xdialog.window->show();
 		Fl::add_timeout(Xdialog.timeout,timeout_exit,NULL );
+	}
 }
 
 //-------------------------------------------------------------------------
@@ -237,181 +242,163 @@ void get_maxsize(int *x, int *y)
 
 //-------------------------------------------------------------------------
 
-static char *filter(char *txt)
+static int get_window_width_in_pixels(void)
 {
-  count_line=Xdialog.xsize*1.5/fl_width("a",1);
-  int fill_number=0;
-  char *p=new char[MAX_LABEL_LENGTH];
-  char *start_p;
-  start_p=p;
-  char *temp=new char[MAX_LABEL_LENGTH];
-  int k=0;
-  if(fl_width(txt)<Xdialog.xsize-20) {
-    return txt;
-  }
-  else {
-    for(int i=0;i<strlen(txt);i++) {
-      *p=txt[i];
-      p++;
-      if(i%count_line>count_line-2) {
-        *p=0x20;
-        p++;
-      }
-    }
-  }
-  *p=0;
-  return start_p;
-}
-
-//-------------------------------------------------------------------------
-
-static void set_separator(bool from_start)
-{
-	Fl_Line *line = new Fl_Line(0,30,Xdialog.xsize,0);
-}
-
-//-------------------------------------------------------------------------
-
-static void set_backtitle(bool sep_flag)
-{
-	int back_title_height = 30;
-	Fl_Box *label=new Fl_Box(0,0,Xdialog.xsize,30,0);
-	char backtitle[MAX_BACKTITLE_LENGTH];
-	if (strlen(Xdialog.backtitle) == 0)
-		return;
-	if (dialog_compat)
-		backslash_n_to_linefeed(Xdialog.backtitle, backtitle, MAX_BACKTITLE_LENGTH);
-	else
-		trim_string(Xdialog.backtitle, backtitle, MAX_BACKTITLE_LENGTH);
-
-	if (Xdialog.wrap || dialog_compat)
-		wrap_text(backtitle, 2 * ymult / 3);
-	Fl_Box *back_box = new Fl_Box(0, 0, Xdialog.xsize, 30, 0);
-	back_box->label(Xdialog.backtitle);
-	back_box->labelfont(0);
-	back_box->labelcolor(FL_BLACK);
-	back_box->align(FL_ALIGN_CENTER);
-	back_box->labelsize(14);
-	if (sep_flag) {
-		set_separator(true);
+	if (Xdialog.size_in_pixels) {
+			return Xdialog.xsize;
 	}
+	return Xdialog.xsize * xmult;
 }
 
 //-------------------------------------------------------------------------
 
-static void create_buttons()
+static int get_window_height_in_pixels(void)
 {
+	if (Xdialog.size_in_pixels) {
+			return Xdialog.ysize;
+	}
+	return Xdialog.ysize * ymult;
+}
+
+//-------------------------------------------------------------------------
+
+int calc_browser_height(Fl_Browser_ *browser, int num_items)
+{
+	// (incr_size is protected)
+	return 4+((browser->textsize()+2)*num_items);
+}
+
+//-------------------------------------------------------------------------
+
+int calc_tree_height(Fl_Tree *tree, int num_items)
+{
+	return (num_items*(ymult+tree->linespacing()))+tree->marginbottom()+tree->margintop();
+}
+
+//-------------------------------------------------------------------------
+
+static int set_label(int y, const char *label_text, bool sep_flag)
+{
+	// abort if nothing to set
+	if (label_text==NULL || label_text[0]==0) {
+		return y;
+	}
+
+	// get client window area
+  int clientwidth=get_window_width_in_pixels()-(CLIENT_BORDER_SIZE*2);
+
+  // get height of any title on client area
+  int height=0;
+	get_label_height(label_text, clientwidth, height);
+	int next_y=y+height+BORDER_SIZE;
+
+	set_label(label_text, true, CLIENT_BORDER_SIZE, y, clientwidth, height);
+
+	if (sep_flag) {
+		Fl_Line *sep=new Fl_Line(CLIENT_BORDER_SIZE, next_y, clientwidth, 0);
+		next_y+=sep->h()+BORDER_SIZE;
+	}
+
+	return next_y;
+}
+
+//-------------------------------------------------------------------------
+
+static int create_buttons(int next_y)
+{
+	// setup text for labels if not already set
 	if (Xdialog.ok_label[0] == 0)
 	{
-		strcpysafe(Xdialog.ok_label, "Ok", MAX_TITLE_LENGTH);
+		strcpysafe(Xdialog.ok_label, "Ok", MAX_BUTTON_LABEL_LENGTH);
 	}
+
 	if (Xdialog.cancel_label[0] == 0)
 	{
-		strcpysafe(Xdialog.cancel_label, "Cancel", MAX_TITLE_LENGTH);
+		strcpysafe(Xdialog.cancel_label, "Cancel", MAX_BUTTON_LABEL_LENGTH);
 	}
-	if(Xdialog.print)
-	{
-	  int btw = (Xdialog.xsize - 240) / 4;
-				Fl_Button *btn_yes = new Fl_Button(btw, Xdialog.ysize - 25 - 5, 80, 25, 0);
-				Fl_Button *btn_no = new Fl_Button(btw * 2 + 80, Xdialog.ysize - 25 - 5, 80, 25, 0);
-				Fl_Button *btn_print = new Fl_Button(btw * 3 + 80 * 2, Xdialog.ysize - 25 - 5, 80, 25, 0);
-				btn_yes->label(Xdialog.ok_label);
-				btn_no->label(Xdialog.cancel_label);
-				btn_print->label("Print");
-				btn_yes->callback(click_yes);
-				btn_no->callback(click_no);
-				btn_print->callback(click_print);
-	}
-	if (Xdialog.ok_button&&Xdialog.cancel_button&&Xdialog.buttons&&!Xdialog.print)
-	{
-		if (Xdialog.wizard){
-			if (!Xdialog.help){
-				int btw = (Xdialog.xsize - 240) / 4;
-				Fl_Button *btn_pre = new Fl_Button(btw, Xdialog.ysize - 25 - 5, 80, 25, 0);
-				Fl_Button *btn_no = new Fl_Button(btw * 2 + 80, Xdialog.ysize - 25 - 5, 80, 25, 0);
-				Fl_Button *btn_next = new Fl_Button(btw * 3 + 80 * 2, Xdialog.ysize - 25 - 5, 80, 25, 0);
-				btn_pre->label(PREVIOUS);
-				btn_no->label(CANCEL);
-				btn_next->label(NEXT);
-				btn_pre->callback(click_pre);
-				btn_no->callback(click_no);
-				btn_next->callback(click_next);
+
+
+	// setup for buttons
+	int buttoncount=0;
+
+	const char *labels[XDIALOG_MAX_BUTTONS];
+	const Fl_Callback *callbacks[XDIALOG_MAX_BUTTONS];
+
+	memset(labels, 0, sizeof(labels));
+	memset(callbacks, 0, sizeof(callbacks));
+
+	if (Xdialog.buttons) {
+
+		if (Xdialog.wizard) {
+			callbacks[0]=click_pre;
+			callbacks[1]=click_no;
+			callbacks[2]=click_next;
+			buttoncount=3;
+		}
+		else {
+			if (Xdialog.ok_button) {
+				callbacks[buttoncount]=click_yes;
+				labels[buttoncount]=Xdialog.yesno_button ? "Yes" : Xdialog.ok_label;
+				buttoncount++;
 			}
-			else{
-				int btw = (Xdialog.xsize - 320) / 5;
-				Fl_Button *btn_pre = new Fl_Button(btw, Xdialog.ysize - 25 - 5, 80, 25, 0);
-				Fl_Button *btn_no = new Fl_Button(btw * 2 + 80, Xdialog.ysize - 25 - 5, 80, 25, 0);
-				Fl_Button *btn_next = new Fl_Button(btw * 3 + 80 * 2, Xdialog.ysize - 25 - 5, 80, 25, 0);
-				Fl_Button *btn_help = new Fl_Button(btw * 4 + 80 * 3, Xdialog.ysize - 25 - 5, 80, 25, 0);
-				btn_pre->label(PREVIOUS);
-				btn_no->label(CANCEL);
-				btn_next->label(NEXT);
-				btn_help->label(HELP);
-				btn_pre->callback(click_pre);
-				btn_no->callback(click_no);
-				btn_next->callback(click_next);
-				btn_help->callback(click_help);
+
+			if (Xdialog.cancel_button) {
+				callbacks[buttoncount]=click_no;
+				labels[buttoncount]=Xdialog.yesno_button ? "No" : Xdialog.cancel_label;
+				buttoncount++;
+			}
+
+			if (Xdialog.print) {
+				callbacks[buttoncount]=click_print;
+				labels[buttoncount]=PRINT;
+				buttoncount++;
 			}
 		}
-		else
-		{
-			if (!Xdialog.help){
-				int btw = (Xdialog.xsize - 160) / 3;
-				Fl_Button *btn_yes = new Fl_Button(btw, Xdialog.ysize - 25 - 5, 80, 25, 0);
-				Fl_Button *btn_no = new Fl_Button(btw * 2 + 80, Xdialog.ysize - 25 - 5, 80, 25, 0);
-				btn_yes->label(Xdialog.ok_label);
-				btn_no->label(Xdialog.cancel_label);
-				btn_yes->callback(click_yes);
-				btn_no->callback(click_no);
-			}
-			else{
-				int btw = (Xdialog.xsize - 240) / 4;
-				Fl_Button *btn_yes = new Fl_Button(btw, Xdialog.ysize - 25 - 5, 80, 25, 0);
-				Fl_Button *btn_no = new Fl_Button(btw * 2 + 80, Xdialog.ysize - 25 - 5, 80, 25, 0);
-				Fl_Button *btn_help = new Fl_Button(btw * 3 + 80 * 2, Xdialog.ysize - 25 - 5, 80, 25, 0);
-				btn_yes->label(Xdialog.ok_label);
-				btn_no->label(Xdialog.cancel_label);
-				btn_help->label(HELP);
-				btn_yes->callback(click_yes);
-				btn_no->callback(click_no);
-				btn_help->callback(click_help);
-			}
+
+		if (Xdialog.help) {
+			callbacks[buttoncount]=click_help;
+			labels[buttoncount]=HELP;
+			buttoncount++;
 		}
 	}
 
-	if (!Xdialog.ok_button&&Xdialog.buttons)
-	{
-		Fl_Button *btn_no = new Fl_Button(Xdialog.xsize*0.5 - 12, Xdialog.ysize - 25 - 5, 80, 25, 0);
-		btn_no->label(Xdialog.cancel_label);
-		btn_no->callback(click_no);
+	// calc button spacing
+	int btsp = (get_window_width_in_pixels() - (XDIALOG_BUTTON_WIDTH*buttoncount))/(buttoncount+1);
+
+	// create buttons
+	for (int b=0, btw=btsp; b<buttoncount; btw+=btsp+XDIALOG_BUTTON_WIDTH, b++) {
+		// create a button
+		Fl_Button *btn=new Fl_Button(btw, get_window_height_in_pixels()- XDIALOG_BUTTON_HEIGHT - BORDER_SIZE, XDIALOG_BUTTON_WIDTH, XDIALOG_BUTTON_HEIGHT, 0);
+		// now figure out what label and callback it should have
+		btn->label(labels[b]);
+		btn->callback(callbacks[b]);
 	}
-	if (!Xdialog.cancel_button&&Xdialog.buttons)
-	{
-		Fl_Button *btn_yes = new Fl_Button(Xdialog.xsize*0.5 - 12, Xdialog.ysize - 25 - 5, 80, 25, 0);
-		btn_yes->label(Xdialog.ok_label);
-		btn_yes->callback(click_yes);
-	}
-	if (Xdialog.check)
-	{
-		Fl_Check_Button *check = new Fl_Check_Button(6, Xdialog.ysize - 55, 10, 6, 0);
-		check->activate();
-		check->active();
+
+
+	// next_y set to zero means no checkbox allowed
+	if (Xdialog.check && next_y!=0)	{
+		int clientwidth=Xdialog.window->w()-(CLIENT_BORDER_SIZE*2);
+
+		Fl_Box *back_box = new Fl_Box(CLIENT_BORDER_SIZE, next_y, clientwidth, ymult+(BORDER_SIZE*2), 0);
+		back_box->box(FL_THIN_DOWN_FRAME);
+
+		Fl_Check_Button *check = new Fl_Check_Button(CLIENT_BORDER_SIZE+BORDER_SIZE, next_y+BORDER_SIZE, clientwidth-(BORDER_SIZE*2), ymult, 0);
+		//check->activate();
+		//check->active();
 		check->callback(CheckCallback);
-		Fl_Box *back_box = new Fl_Box(20, Xdialog.ysize - 56, 10, 5, 0);
-		back_box->label(Xdialog.check_label);
-		back_box->labelfont(0);
-		back_box->labelcolor(FL_BLACK);
-		back_box->align(FL_ALIGN_RIGHT);
-		back_box->labelsize(15);
-		if (Xdialog.checked)
-		{
+		check->label(Xdialog.check_label);
+
+		next_y+=check->h()+BORDER_SIZE;
+
+		if (Xdialog.checked) {
 			check->value(1);
 		}
-		else
-		{
+		else {
 			check->value(0);
 		}
 	}
+
+	return next_y;
 }
 
 //-------------------------------------------------------------------------
@@ -432,7 +419,6 @@ static void set_window_size_and_placement(void)
 	}
 
 	/* Allow the window to grow, shrink and auto-shrink */
-	//gtk_window_set_policy(GTK_WINDOW(Xdialog.window), TRUE, TRUE, TRUE);
 	Xdialog.window->resizable();
 
 	/* Set the window placement policy */
@@ -444,7 +430,6 @@ static void set_window_size_and_placement(void)
             Fl::h() + Xdialog.yorg - Xdialog.ysize - 3 * ymult);
 	}
 	else {
-      //Xdialog.window->align(FL_ALIGN_CENTER);
       Xdialog.window->position((Fl::w() - Xdialog.window->w())/2, (Fl::h() - Xdialog.window->h())/2);
 	}
 }
@@ -462,8 +447,16 @@ void open_window(void)
 	/* Open a new GTK top-level window */
 	window = Xdialog.window;
 
+	/* adjust titles based on what is provided */
+	if (Xdialog.backtitle[0]==0) {
+		if (strlen(Xdialog.title) < MAX_BACKTITLE_LENGTH) {
+			strcpy(Xdialog.backtitle, Xdialog.title);
+			Xdialog.title[0]=0;
+		}
+	}
+
 	/* Set the window title */
-	window->label(Xdialog.title);
+	window->label(Xdialog.backtitle);
 
 
 	/* Set the internal border so that the child widgets do not
@@ -498,53 +491,16 @@ void open_window(void)
 
 void create_msgbox(gchar *optarg, gboolean yesno)
 {
-    if(Xdialog.xsize==0&&Xdialog.ysize==0)
-	  {
-	    Xdialog.xsize=48;
-	    Xdialog.ysize=13;
-	  }
 	open_window();
-	//Fl_Widget *hbuttonbox;
-	int check_height = CHECK_BUTTON_HEIGHT;
-	int button_height = BUTTON_HEIGHT;
-	int backtitle_height = BACKTITLE_HEIGHT;
-	if (!Xdialog.check)
-		check_height = 0;
-	if (!Xdialog.buttons)
 
-		button_height = 0;
-	if (strlen(Xdialog.backtitle) == 0)
-		backtitle_height = 0;
+	int next_y=set_label(CLIENT_BORDER_SIZE, Xdialog.title, true);
+	next_y =set_label(next_y, optarg, false);
 
-	set_backtitle(true);
-	set_label(optarg,true,0,backtitle_height,Xdialog.xsize,Xdialog.ysize-check_height-button_height-backtitle_height);
-	if (yesno)
-	{
-
-	  strcpysafe(Xdialog.ok_label,"Yes",MAX_LABEL_LENGTH);
-	strcpysafe(Xdialog.cancel_label,"No",MAX_LABEL_LENGTH);
-		create_buttons();
+	if (!yesno) {
+		Xdialog.cancel_button=false;
 	}
-	else
-	{
-		if (Xdialog.help)
-		{
-			int btw = (Xdialog.xsize - 160) / 3;
-			Fl_Button *btn_yes = new Fl_Button(btw, Xdialog.ysize - 25 - 5, 80, 25, 0);
-			Fl_Button *btn_help = new Fl_Button(btw * 2 + 80, Xdialog.ysize - 25 - 5, 80, 25, 0);
-			btn_yes->label(Xdialog.ok_label);
-			btn_help->label(HELP);
-			btn_yes->callback(click_yes);
-			btn_help->callback(click_help);
-		}
-		else
-		{
-			int btw = (Xdialog.xsize - 80) / 2;
-			Fl_Button *btn_yes = new Fl_Button(btw, Xdialog.ysize - 25 - 5, 80, 25, 0);
-			btn_yes->label(Xdialog.ok_label);
-			btn_yes->callback(click_yes);
-		}
-	}
+
+	create_buttons(next_y);
 	set_timeout();
 }
 
@@ -552,50 +508,23 @@ void create_msgbox(gchar *optarg, gboolean yesno)
 
 void create_infobox(gchar *optarg, gint timeout)
 {
-  fl_font(FL_BOLD,14);
-  char *_optarg=new char[MAX_LABEL_LENGTH];
-	trim_string(optarg,_optarg,MAX_LABEL_LENGTH);
-      if(Xdialog.xsize==0&&Xdialog.ysize==0)
-      {
-	int _x,_y;
-	fl_measure(_optarg,_x,_y);
-	if(_x>80)
-	  Xdialog.xsize=_x+10;
-	else
-	  Xdialog.xsize=90;
-	Xdialog.ysize=_y+BUTTON_HEIGHT;
-	Xdialog.size_in_pixels=true;
-      }
-      open_window();
-	int check_height = CHECK_BUTTON_HEIGHT;
-	int button_height = BUTTON_HEIGHT;
-	int backtitle_height = BACKTITLE_HEIGHT;
-	if (!Xdialog.check)
-		check_height = 0;
-	if (!Xdialog.buttons)
-		button_height = 0;
-	if (strlen(Xdialog.backtitle) == 0)
-		backtitle_height = 0;
-	set_backtitle(true);
-	set_label(optarg, true, 0, backtitle_height, Xdialog.xsize, Xdialog.ysize - check_height - button_height - backtitle_height);
-	if (Xdialog.buttons&&!dialog_compat)
-	{
-		if (timeout>0)
-		{
-			int btw = (Xdialog.xsize - 80) / 2;
-			Fl_Button *btn_yes = new Fl_Button(btw, Xdialog.ysize - 25 - 5, 80, 25, 0);
-			btn_yes->label(OK);
-			btn_yes->callback(click_yes);
-		}
-		else
-		{
 
-			int btw = (Xdialog.xsize - 80) / 2;
-			Fl_Button *btn_yes = new Fl_Button(btw, Xdialog.ysize - 25 - 5, 80, 25, 0);
-			btn_yes->label(CANCEL);
-			btn_yes->callback(click_no);
+	open_window();
+
+	int next_y=set_label(CLIENT_BORDER_SIZE, Xdialog.title, true);
+	next_y =set_label(next_y, optarg, false);
+
+	if (!dialog_compat && Xdialog.buttons) {
+		if (timeout>0) {
+			Xdialog.cancel_button=false;
 		}
+		else {
+			Xdialog.ok_button=false;
+		}
+
+		create_buttons(next_y);
 	}
+
 	if (timeout>0)
 	{
 		Fl::add_timeout(timeout/1000, info_timeout);
@@ -614,22 +543,34 @@ void create_gauge(gchar *optarg, gint percent)
 		value = 100;
 	else
 		value = percent;
-  int check_height = CHECK_BUTTON_HEIGHT;
-	int button_height = BUTTON_HEIGHT;
-	int backtitle_height = BACKTITLE_HEIGHT;
-	if (!Xdialog.check)
-		check_height = 0;
-	if (!Xdialog.buttons)
-		button_height = 0;
-	if (strlen(Xdialog.backtitle) == 0)
-		backtitle_height = 0;
-	char *label_value=new char[5];
-	sprintf(label_value,"%d%%",percent);
+
+  #define PROGRESS_LABEL_BUFFER_SIZE 5
+
+	char *label_value=new char[PROGRESS_LABEL_BUFFER_SIZE];
+	snprintf(label_value, PROGRESS_LABEL_BUFFER_SIZE-1, "%d%%",percent);
+	label_value[PROGRESS_LABEL_BUFFER_SIZE-1]=0;
+
 	open_window();
-	set_backtitle(true);
-	Xdialog.widget4=(Fl_Widget *)set_label(optarg,true,0,backtitle_height,Xdialog.xsize,Xdialog.ysize-check_height-backtitle_height-30);
-	int btw=Xdialog.xsize/10;
-	Fl_Progress *progress=new Fl_Progress(btw,Xdialog.ysize-30,btw*8,25);
+
+  // compute client width area
+  int clientwidth=Xdialog.window->w()-(CLIENT_BORDER_SIZE*2);
+
+  // add title
+	int next_y=set_label(CLIENT_BORDER_SIZE, Xdialog.title, true);
+
+	// setup label that can change - we'll set up to 3 lines
+	int labelheight=0;
+	get_label_height(optarg, clientwidth, labelheight);
+	// make it up to three lines (this can be improved to resize everything in the callback instead)
+	labelheight*=3;
+
+	Fl_Widget *label=(Fl_Widget *)set_label(optarg, true, CLIENT_BORDER_SIZE, next_y, clientwidth, labelheight);
+	label->align(FL_ALIGN_INSIDE|FL_ALIGN_TOP|FL_ALIGN_WRAP);
+	next_y+=label->h()+BORDER_SIZE;
+
+	int btw=clientwidth/10;
+	Fl_Progress *progress=new Fl_Progress(CLIENT_BORDER_SIZE+btw, next_y, btw*8, 25);
+
 	progress->minimum(0);
 	progress->maximum(100);
 	progress->color(0x88888800);
@@ -637,11 +578,13 @@ void create_gauge(gchar *optarg, gint percent)
 	progress->labelcolor(FL_WHITE);
 	progress->value(percent);
 	progress->label(label_value);
+
 	Xdialog.widget1=(Fl_Widget *)progress;
+	Xdialog.widget4=label;
 	Xdialog.label_text[0] = 0;
 	Xdialog.new_label = Xdialog.check = false;
-	Fl::add_timeout(1,gauge_timeout);
 
+	Fl::add_timeout(1,gauge_timeout);
 }
 
 //-------------------------------------------------------------------------
@@ -654,86 +597,67 @@ void create_progress(gchar *optarg, gint leading, gint maxdots)
 
 void create_tailbox(gchar *optarg)
 {
-
+	// open file
 	FILE *infile;
-
-	int i, n = 0, llen = 0, lcnt = 0;
-
 	infile=fopen(optarg,"r");
-	if(!infile)
-	{
-	    Xdialog.exit_code=255;
-	  printf("Xdialog:cann't open %s",optarg);
+	if (!infile) {
+    Xdialog.exit_code=255;
+	  printf("Xdialog:can't open %s\n",optarg);
 	  exit(0);
 	}
+
+	// get file size
 	fseek(infile, 0L, SEEK_END);
 	int sz = ftell(infile);
 	fseek(infile, 0L, SEEK_SET);
-	char *file_content=new char[sz];
-	if (infile) {
-		char buffer[1024];
-		int nchars;
 
-		do {
-			nchars = fread(buffer, 1, 1024, infile);
-			/* Calculate the maximum line length and lines count */
-			for (i = 0; i < nchars; i++)
-				if (buffer[i] != '\n') {
-					if (buffer[i] == '\t')
-						n += 8;
-					else
-						n++;
-				} else {
-					if (n > llen)
-						llen = n;
-					n = 0;
-					lcnt++;
-				}
-		strcatsafe(file_content,buffer,sz);
-		} while (nchars == 1024);
-	}
-	else
-	{
-	  Xdialog.exit_code=255;
-	  printf("Xdialog:cann't open %s",optarg);
-	  printf("\n");
-	  exit(0);
+
+	// create buffer to read file (assume success)
+	char *file_content=new char[sz+1];
+	file_content[sz]=0;
+
+	int nchars = fread(file_content, 1, sz, infile);
+
+	/* Calculate the maximum line length and lines count */
+	int i, n = 0, llen = 0, lcnt = 1;
+
+	for (i = 0; i < nchars; i++) {
+		if (file_content[i] != '\n') {
+			if (file_content[i] == '\t')
+				n += 8;
+			else
+				n++;
+		}
+		else {
+			if (n > llen)
+				llen = n;
+			n = 0;
+			lcnt++;
+		}
 	}
 	fclose(infile);
-	open_window();
-	char *p=new char[sz+sz];
-	char *fir=p;
-	char *mid=p;
-	fl_font(FL_BOLD,10);
-	while(*file_content!='\0')
-	{
-	  *p=*file_content;
-	  int _width=0;
-	  int _height=0;
-	  *(p+1)='\0';
-	  fl_measure(mid,_width,_height,0);
-	  if(_width>Xdialog.ysize+10)
-	  {
-	    p++;
-	    *p='\n';
-	    mid=(p+1);
-	  }
-	  p++;
-	  file_content++;
-	}
-	*p='\0';
-	int size=strlen(fir);
-	char *_file_content=new char[size];
-	strcpysafe(_file_content,fir,size);
-	Fl_Text_Display *textView = new Fl_Text_Display(5, 5, Xdialog.xsize - 10, Xdialog.ysize - 60,0);
-	textView->scrollbar_align(FL_ALIGN_RIGHT);
-	Fl_Text_Buffer *buffer = new Fl_Text_Buffer();
-	textView->textsize(12);
-	buffer->append(_file_content);
-	textView->buffer(buffer);
 
-	textView->cursor_style(Fl_Text_Display::NORMAL_CURSOR);
-	textView->scroll(strlen(_file_content),strlen(_file_content));
+
+	open_window();
+
+  // compute client width area
+  int clientwidth=Xdialog.window->w()-(CLIENT_BORDER_SIZE*2);
+  int clientheight=Xdialog.window->h()-(CLIENT_BORDER_SIZE*2);
+
+	int next_y=set_label(CLIENT_BORDER_SIZE, Xdialog.title, false);
+
+	Fl_Text_Display *textview = new Fl_Text_Display(CLIENT_BORDER_SIZE, CLIENT_BORDER_SIZE, clientwidth, clientheight - (XDIALOG_BUTTON_HEIGHT * 2));
+	Fl_Text_Buffer *buffer = new Fl_Text_Buffer();
+	buffer->append(file_content);
+	textview->buffer(buffer);
+
+	int linesinview = textview->h() / (textview->textsize()+2);
+	// adjust out scrollbar size in case it's shown
+	linesinview-=Fl::scrollbar_size() / (textview->textsize()+2);
+
+	textview->cursor_style(Fl_Text_Display::NORMAL_CURSOR);
+	textview->scroll((lcnt>linesinview) ? (lcnt-linesinview) : 0, 0);
+
 	create_buttons();
 }
 
@@ -747,74 +671,68 @@ void create_logbox(gchar *optarg)
 
 void create_textbox(gchar *optarg, gboolean editable)
 {
-	int check_height = CHECK_BUTTON_HEIGHT;
-	int button_height = BUTTON_HEIGHT;
-	int backtitle_height = BACKTITLE_HEIGHT;
-	Fl_Text_Editor *editor_box;
-	if (!Xdialog.check)
-		check_height = 0;
-	if (!Xdialog.buttons)
-		button_height = 0;
-	if (strlen(Xdialog.backtitle) == 0)
-		backtitle_height = 0;
-	FILE *infile;
 	gint i, n = 0, llen = 0, lcnt = 0;
 
 	open_window();
-	set_backtitle(false);
-	//editor_box=new Fl_Text_Editor(5,backtitle_height,Xdialog.xsize-10,Xdialog.ysize-button_height-check_height-backtitle_height,0);
-	if (strcmp(optarg, "-") == 0)
-		infile = stdin;
-	else
-		infile = fopen(optarg, "r");
+
+  // compute client width area
+  int clientwidth=Xdialog.window->w()-(CLIENT_BORDER_SIZE*2);
+  int clientheight=Xdialog.window->h()-(CLIENT_BORDER_SIZE*2);
+
+	// open file
+	FILE *infile = fopen(optarg, "r");
+
+	// get file size
 	fseek(infile, 0L, SEEK_END);
 	int sz = ftell(infile);
 	fseek(infile, 0L, SEEK_SET);
-	char *file_content=new char[sz];
+
+	// create buffer for contents
+	char *file_content=new char[sz+1];
 	file_content[0]=0;
+	file_content[sz]=0;
+
+	// read file
 	if (infile) {
-		char buffer[1024];
-		int nchars;
-
-		do {
-			nchars = fread(buffer, 1, 1024, infile);
-			/* Calculate the maximum line length and lines count */
-			for (i = 0; i < nchars; i++)
-				if (buffer[i] != '\n') {
-					if (buffer[i] == '\t')
-						n += 8;
-					else
-						n++;
-				} else {
-					if (n > llen)
-						llen = n;
-					n = 0;
-					lcnt++;
-				}
-		strcatsafe(file_content,buffer,nchars);
-		} while (nchars == 1024);
-
-		if (infile != stdin)
-			fclose(infile);
+		size_t nchars=fread(file_content, 1, sz, infile);
+		file_content[nchars]=0;
+		/* Calculate the maximum line length and lines count */
+		for (i = 0; i < nchars; i++) {
+			if (file_content[i] != '\n') {
+				if (file_content[i] == '\t')
+					n += 8;
+				else
+					n++;
+			}
+			else {
+				if (n > llen)
+					llen = n;
+				n = 0;
+				lcnt++;
+			}
+		}
+		fclose(infile);
 	}
-	if (dialog_compat && !editable)
+
+	if (dialog_compat && !editable) {
 		Xdialog.cancel_button = false;
-	if (!editable)
-	{
-		Fl_Multiline_Output *output = new Fl_Multiline_Output(5, 5, Xdialog.xsize - 10, Xdialog.ysize - 60);
+	}
+
+	if (!editable) {
+		Fl_Multiline_Output *output = new Fl_Multiline_Output(CLIENT_BORDER_SIZE, CLIENT_BORDER_SIZE, clientwidth, clientheight - (XDIALOG_BUTTON_HEIGHT * 2));
 		output->value(file_content);
-		Xdialog.type=2;
+		Xdialog.type=XDIALOG_TYPE_EDIT_READONLY;
 		Xdialog.widget1=(Fl_Widget*)output;
 	}
-	else
-	{
-		Fl_Text_Editor *output = new Fl_Text_Editor(5, 5, Xdialog.xsize - 10, Xdialog.ysize - 60);
+	else {
+		Fl_Text_Editor *output = new Fl_Text_Editor(CLIENT_BORDER_SIZE, CLIENT_BORDER_SIZE, clientwidth, clientheight - (XDIALOG_BUTTON_HEIGHT * 2));
 		Fl_Text_Buffer *buffer = new Fl_Text_Buffer();
 		buffer->append(file_content);
-		Xdialog.type=3;
+		Xdialog.type=XDIALOG_TYPE_EDIT;
 		output->buffer(buffer);
 		Xdialog.widget1=(Fl_Widget*)output;
 	}
+
 	create_buttons();
 	set_timeout();
 }
@@ -823,35 +741,30 @@ void create_textbox(gchar *optarg, gboolean editable)
 
 void create_inputbox(gchar *optarg, gchar *options[], gint entries)
 {
-    char deftext[MAX_INPUT_DEFAULT_LENGTH];
-    int check_height = CHECK_BUTTON_HEIGHT;
-	int button_height = BUTTON_HEIGHT;
-	int backtitle_height = BACKTITLE_HEIGHT;
-	if (!Xdialog.check)
-		check_height = 0;
-	if (!Xdialog.buttons)
-		button_height = 0;
-	if (strlen(Xdialog.backtitle) == 0)
-		backtitle_height = 0;
 	open_window();
-	Fl_Input *input;
-	if(entries==1)
-	{
-	set_backtitle(true);
-	int row_hight=(Xdialog.ysize-backtitle_height-button_height-10);
-	set_label(optarg,true,0,backtitle_height,Xdialog.xsize,row_hight);
-	input=new Fl_Input(10,Xdialog.ysize-button_height-10,Xdialog.xsize-20,25,0);
-	input->value(options[0]);
-	create_buttons();
-	if ((Xdialog.passwd > 0 && Xdialog.passwd < 10) ||
-				(Xdialog.passwd > 10 && Xdialog.passwd <= entries + 10))
-	{
-		Fl_Check_Button *typing_hide = new Fl_Check_Button(10, row_hight + row_hight*0.5+30, 40, 25, 0);
-		typing_hide->label("Hide typing");
-		typing_hide->callback(HidetypingCallback);
+  int clientwidth=Xdialog.window->w()-(CLIENT_BORDER_SIZE*2);
+
+	Fl_Input *input=NULL;
+
+	if(entries==1) {
+		int next_y=set_label(CLIENT_BORDER_SIZE, Xdialog.title, true);
+		next_y=set_label(next_y, optarg, false);
+
+		input=new Fl_Input(CLIENT_BORDER_SIZE+BORDER_SIZE, next_y, clientwidth-(BORDER_SIZE*2), 25, 0);
+		input->value(options[0]);
+
+		next_y+=input->h()+BORDER_SIZE;
+		next_y=create_buttons(next_y);
+
+		if (Xdialog.passwd)	{
+			Fl_Check_Button *typing_hide = new Fl_Check_Button(CLIENT_BORDER_SIZE, next_y, clientwidth, XDIALOG_BUTTON_HEIGHT, 0);
+			typing_hide->label("Hide typing");
+			typing_hide->callback(HidetypingCallback);
+		}
 	}
-	}
-	Xdialog.type=1;
+
+	Xdialog.widget1=input;
+	Xdialog.type=XDIALOG_TYPE_INPUT;
 	Xdialog.widget1=(Fl_Widget *)input;
 }
 
@@ -865,34 +778,35 @@ void create_combobox(gchar *optarg, gchar *options[], gint list_size)
 
 void create_rangebox(gchar *optarg, gchar *options[], gint ranges)
 {
-    int check_height = CHECK_BUTTON_HEIGHT;
-    int button_height = BUTTON_HEIGHT;
-    int backtitle_height = BACKTITLE_HEIGHT;
-	if (!Xdialog.check)
-		check_height = 0;
-	if (!Xdialog.buttons)
-		button_height = 0;
-	if (strlen(Xdialog.backtitle) == 0)
-		backtitle_height = 0;
 
-     int min,max,deflt;
-     open_window();
-     Fl_Hor_Slider *slider=new Fl_Hor_Slider(10,Xdialog.ysize-button_height-30,Xdialog.xsize-20,30);
-     set_backtitle(true);
-     if(ranges==1)
-     {
-	set_label(optarg,true,0,backtitle_height,Xdialog.xsize,Xdialog.ysize-button_height-30);
+	open_window();
 
-	slider->minimum(atoi(options[0]));
-	slider->maximum(atoi(options[1]));
-	slider->value(atoi(options[2]));
-	slider->label(options[2]);
-	slider->callback(sliderCallback);
-     }
-     Xdialog.type=9;
-     create_buttons();
-     if (Xdialog.interval>0)
-	{
+  // compute client width area
+  int clientwidth=Xdialog.window->w()-(CLIENT_BORDER_SIZE*2);
+
+	int next_y=set_label(CLIENT_BORDER_SIZE, Xdialog.title, false);
+	next_y=set_label(next_y, optarg, false);
+
+  int min,max,deflt;
+
+  Fl_Hor_Slider *slider=new Fl_Hor_Slider(CLIENT_BORDER_SIZE+BORDER_SIZE, next_y, clientwidth-(BORDER_SIZE*2), SLIDER_HEIGHT);
+
+  if(ranges==1) {
+
+		slider->minimum(atoi(options[0]));
+		slider->maximum(atoi(options[1]));
+		slider->value(atoi(options[2]));
+		slider->label(options[2]);
+		slider->callback(sliderCallback);
+  }
+
+	next_y+=slider->h()+BORDER_SIZE;
+	create_buttons(next_y);
+
+	Xdialog.type=XDIALOG_TYPE_RANGEBOX;
+	Xdialog.widget1=slider;
+
+	if (Xdialog.interval>0) {
 	  Fl::add_timeout(Xdialog.interval/1000,OutputCallback_rangebox);
 	}
 }
@@ -910,50 +824,35 @@ void create_itemlist(char *optarg, int type, char *options[], int list_size)
   char temp[MAX_ITEM_LENGTH];
   char *_optarg=new char[MAX_LABEL_LENGTH];
   trim_string(optarg,_optarg,MAX_LABEL_LENGTH);
-	int i;
-	open_window();
-	int row_height=0;
-	int label_h=0;
-	int labeltitle_y=0;
-	int params = 3 + Xdialog.tips;
-	if(strlen(Xdialog.backtitle)!=0)
-	{
-	  row_height+=BACKTITLE_HEIGHT-10;
 
-	}
-	if(strlen(optarg)!=0)
-	{
-	  int _x=0,_y=0;
+  // calc number of params per listbox item
+  int params=3+Xdialog.tips;
 
-	  fl_measure(optarg,_x,_y);
-	  label_h=(_x/Xdialog.xsize+1)*_y;
-	  label_h+=countBackSlash(_optarg)*_y;
-	   labeltitle_y=row_height;
-	  row_height+=label_h;
-	}
-	int browser_h=Xdialog.ysize-row_height-BUTTON_HEIGHT;
-	//row_height+=10;
-	Fl_Check_Browser *browser = new Fl_Check_Browser(5, row_height, Xdialog.xsize - 10, browser_h);
-	if(strlen(Xdialog.backtitle)!=0)
-	{
-	  set_backtitle(false);
-	}
-	if(strlen(optarg)!=0)
-	{
- 	  set_label(optarg,true,0,labeltitle_y,Xdialog.xsize,label_h);
-	}
-	Xdialog_array(list_size);
+  open_window();
+
+  // compute client width area
+  int clientwidth=Xdialog.window->w()-(CLIENT_BORDER_SIZE*2);
+
+
+	int next_y=set_label(CLIENT_BORDER_SIZE, Xdialog.title, false);
+	next_y=set_label(next_y, optarg, false);
+
+	int browser_y=next_y;
+
+	// guess on height
+	int browser_h=Xdialog.list_height * ymult;
+
+	Fl_Check_Browser *browser = new Fl_Check_Browser(CLIENT_BORDER_SIZE, browser_y, clientwidth, browser_h);
+
+	// get the actual height of items
+	browser_h=calc_browser_height(browser, Xdialog.list_height);
+	browser->size(browser->w(), browser_h);
 	browser->type(FL_MULTI_BROWSER);
 
-	if(Xdialog.list_height>15)
-	{
-	    browser->textsize(Xdialog.list_height);
-	}
-	else
-	{
-	  browser->textsize(15);
-	}
+	Xdialog_array(list_size);
+
 	browser->has_scrollbar(Fl_Check_Browser::VERTICAL);
+
 	for (int i = 0; i < list_size;i++)
 	{
 		strcpysafe(Xdialog.array[i].tag, options[params*i], MAX_ITEM_LENGTH);
@@ -965,7 +864,7 @@ void create_itemlist(char *optarg, int type, char *options[], int list_size)
 		}
 		strcatsafe(temp, options[params*i + 1], MAX_ITEM_LENGTH);
 		browser->add(temp);
-		if(Xdialog.array[i].state!=1)
+		if(Xdialog.array[i].state==1)
 		{
 		  browser->set_checked(i+1);
 		}
@@ -974,10 +873,10 @@ void create_itemlist(char *optarg, int type, char *options[], int list_size)
 	create_buttons();
 	if (Xdialog.interval>0)
 	{
-		Fl::add_timeout(Xdialog.interval / 1000, OutputCallback_ItemList);
+		Fl::add_timeout(Xdialog.interval / 1000, OutputCallback_CheckList);
 	}
-	Xdialog.window->show();
-	Xdialog.type=8;
+	Xdialog.widget1=browser;
+	Xdialog.type=XDIALOG_TYPE_CHECKLIST;
 	set_timeout();
 }
 
@@ -986,96 +885,100 @@ void create_itemlist(char *optarg, int type, char *options[], int list_size)
 void create_buildlist(gchar *optarg, gchar *options[], gint list_size)
 {
   glist_size=list_size;
-  if(Xdialog.xsize==0&&Xdialog.ysize==0)
+  if(Xdialog.xsize==0 && Xdialog.ysize==0)
   {
     Xdialog.xsize=50;
     Xdialog.ysize=12;
   }
-  char *_optarg=new char[MAX_LABEL_LENGTH];
-  trim_string(optarg,_optarg,MAX_LABEL_LENGTH);
+
+  // calc number of params per listbox item
   int params=3+Xdialog.tips;
-  char temp[MAX_LABEL_LENGTH];
-  int label_h;
-  int labeltitle_y;
+
   open_window();
-  int row_height = 0;
-	if(strlen(Xdialog.backtitle)!=0)
-	{
-//	  row_height+=BACKTITLE_HEIGHT;
-	  row_height+=10;
-	}
-	if(strlen(optarg)!=0)
-	{
-	  int _x=0,_y=0;
 
-	  fl_measure(optarg,_x,_y);
-	  label_h=(_x/Xdialog.xsize+1)*_y;
-	  label_h+=countBackSlash(_optarg)*_y;
-	   labeltitle_y=row_height;
-	  row_height+=label_h;
-	}
-	int browser_h=Xdialog.ysize-row_height-BUTTON_HEIGHT;
-	row_height+=10;
-	Fl_Browser *first_Browser = new Fl_Browser(5, row_height, Xdialog.xsize*0.4 - 10, browser_h);
-	Fl_Browser *second_Browser = new Fl_Browser(5 + Xdialog.xsize*0.6,row_height, Xdialog.xsize*0.4 - 10, browser_h);
+  // compute client width area
+  int clientwidth=Xdialog.window->w()-(CLIENT_BORDER_SIZE*2);
 
-	Fl_Button *add = new Fl_Button(Xdialog.xsize*0.4, row_height+browser_h*0.3, Xdialog.xsize*0.2,25);
+	int next_y=set_label(CLIENT_BORDER_SIZE, Xdialog.title, false);
+	next_y=set_label(next_y, optarg, false);
+
+	// guess on height
+	int browser_h=Xdialog.list_height * ymult;
+
+	Fl_Browser *first_Browser = new Fl_Browser(CLIENT_BORDER_SIZE, next_y, clientwidth*0.4, browser_h);
+
+	// get the actual height of items
+	browser_h=calc_browser_height(first_Browser, Xdialog.list_height);
+	first_Browser->size(first_Browser->w(), browser_h);
+
+
+	Fl_Browser *second_Browser = new Fl_Browser(CLIENT_BORDER_SIZE + (clientwidth*0.6), next_y, clientwidth*0.4, browser_h);
+
+	Fl_Button *add = new Fl_Button(CLIENT_BORDER_SIZE + (clientwidth*0.4) + BORDER_SIZE, next_y+(browser_h*0.3), (clientwidth*0.2)-(BORDER_SIZE*2), XDIALOG_BUTTON_HEIGHT);
 	add->label("ADD");
-	Fl_Button *remove = new Fl_Button(Xdialog.xsize*0.4, row_height+browser_h*0.6, Xdialog.xsize*0.2, 25);
-	if(strlen(Xdialog.backtitle)!=0)
-	{
-	//  set_backtitle(true);
-	}
-	if(strlen(optarg)!=0)
-	{
-	  set_label(Xdialog.backtitle,true,0,labeltitle_y,Xdialog.xsize,label_h);
+	Fl_Button *remove = new Fl_Button(CLIENT_BORDER_SIZE + (clientwidth*0.4) + BORDER_SIZE, next_y+(browser_h*0.6), (clientwidth*0.2)-(BORDER_SIZE*2), XDIALOG_BUTTON_HEIGHT);
 
-	}
+
 	first_Browser->has_scrollbar(Fl_Check_Browser::VERTICAL);
 	first_Browser->type(FL_MULTI_BROWSER);
 	second_Browser->has_scrollbar(Fl_Check_Browser::VERTICAL);
 	second_Browser->type(FL_MULTI_BROWSER);
-	Xdialog_array(list_size);
+
 	//////
+  char temp[MAX_LABEL_LENGTH];
+	Xdialog_array(list_size);
 	for (int i = 0; i < list_size;i++)
 	{
-
 		strcpysafe(Xdialog.array[i].tag, options[params*i], MAX_ITEM_LENGTH);
-		Xdialog.array[i].state=item_status(options[params*i+2], Xdialog.array[i].tag);
+		Xdialog.array[i].state=item_status(options[(params*i)+2], Xdialog.array[i].tag);
 		temp[0] = 0;
-		/*if (Xdialog.tags && strlen(options[params*i]) != 0) {
-			strcpysafe(temp, options[params*i], MAX_ITEM_LENGTH);
-			strcatsafe(temp, ":", MAX_ITEM_LENGTH);
-		}*/
-		strcpysafe(temp, options[params*i + 1], MAX_ITEM_LENGTH);
+		strcpysafe(temp, options[(params*i) + 1], MAX_ITEM_LENGTH);
 		if(Xdialog.array[i].state==1)
-		    second_Browser->add(temp);
+		    second_Browser->add(temp, (void*) i);
 		else
-		    first_Browser->add(temp);
+		    first_Browser->add(temp, (void*) i);
 		strcpysafe(Xdialog.array[i].name,temp,MAX_LABEL_LENGTH);
-		/*if(Xdialog.array[i].state!=0)
-		{
-		  first_Browser->set_checked(i+1);
-		}*/
 	}
+
 	/////
 	first_Browser->select(1);
 	second_Browser->select(1);
+
 	remove->label("REMOVE");
 	remove->deactivate();
+
 	add->callback(AddCallback);
 	remove->callback(RemoveCallback);
-	Xdialog.type=7;
-	create_buttons();
-	set_timeout();
-		if(first_Browser->size()==0)
+
+	if(first_Browser->size()==0)
 	  add->deactivate();
+
 	if(first_Browser->size()>0)
 	  add->activate();
+
 	if(second_Browser->size()==0)
 	  remove->deactivate();
+
 	if(second_Browser->size()>0)
 	  remove->activate();
+
+	next_y+=first_Browser->h()+BORDER_SIZE;
+	create_buttons(next_y);
+
+	glist_size=list_size;
+	Xdialog.type=XDIALOG_TYPE_BROWSERLIST;
+	Xdialog.widget1=first_Browser;
+	Xdialog.widget2=second_Browser;
+	Xdialog.widget3=add;
+	Xdialog.widget4=remove;
+
+	if (Xdialog.interval>0)
+	{
+		Fl::add_timeout(Xdialog.interval/1000,OutputCallback_BuildList);
+	}
+
+	set_timeout();
+
 }
 
 //-------------------------------------------------------------------------
@@ -1083,72 +986,57 @@ void create_buildlist(gchar *optarg, gchar *options[], gint list_size)
 void create_menubox(gchar *optarg, gchar *options[], gint list_size)
 {
 	open_window();
-	int row_height=0;
-	int label_h=0;
-	int labeltitle_y=0;
-	int params = 3 + Xdialog.tips;
-	char *_optarg=new char[MAX_LABEL_LENGTH];
-	trim_string(optarg,_optarg,MAX_LABEL_LENGTH);
-	if(strlen(Xdialog.backtitle)!=0)
-	{
-	  row_height+=BACKTITLE_HEIGHT;
 
-	}
-	if(strlen(optarg)!=0)
-	{
-	  int _x=0,_y=0;
+  // compute client width area
+  int clientwidth=Xdialog.window->w()-(CLIENT_BORDER_SIZE*2);
 
-	  fl_measure(optarg,_x,_y);
-	  label_h=(_x/Xdialog.xsize+1)*_y;
-	  label_h+=countBackSlash(_optarg)*_y;
-	  labeltitle_y=row_height;
-	  row_height+=label_h;
-	}
-	int browser_h=Xdialog.ysize-row_height-BUTTON_HEIGHT;
-	row_height+=10;
-	Fl_Browser *browser = new Fl_Browser(5, row_height, Xdialog.xsize - 10, browser_h,0);
+	int next_y=set_label(CLIENT_BORDER_SIZE, Xdialog.title, false);
+	next_y=set_label(next_y, optarg, false);
 
-	if(strlen(Xdialog.backtitle)!=0)
-	{
-	  set_backtitle(true);
-	}
-	if(strlen(optarg)!=0)
-	{
-	  set_label(optarg,true,0,labeltitle_y,Xdialog.xsize,label_h);
+	int browser_y=next_y;
 
-	}
-      Xdialog_array(list_size);
+	// guess on height
+	int browser_h=Xdialog.list_height * ymult;
+
+	Fl_Browser *browser = new Fl_Browser(CLIENT_BORDER_SIZE, next_y, clientwidth, browser_h, 0);
+	// get the actual height of items
+	browser_h=calc_browser_height(browser, Xdialog.list_height);
+	browser->size(browser->w(), browser_h);
+
+  Xdialog_array(list_size);
 	for (int i = 0; i < list_size; i++)
 	{
 		strcpysafe(Xdialog.array[i].tag, options[2*i], MAX_ITEM_LENGTH);
-
 	}
+
 	int old_tag=0;
 	int old_menu=0;
 	int maxtag_x = 0;
 	int maxtag_y = 0;
 	int maxmenu_x = 0;
 	int maxmenu_y = 0;
+
 	for (int i = 0; i < 2*list_size;i+=2)
 	{
 	  maxtag_x=0;
 	  maxmenu_x=0;
 	  fl_measure(options[i],maxtag_x,maxtag_y);
-	  printf("%s\n",options[i]);
+	  //printf("%s\n",options[i]);
 	  fl_measure(options[i+1],maxmenu_x,maxmenu_y);
+
 	  if(maxtag_x>old_tag)
 	    old_tag=maxtag_x;
+
 	  if(maxmenu_x>old_menu)
 	    old_menu=maxmenu_x;
-
 	}
-	static int widths[] = { maxtag_x+5,maxmenu_x+5,0 };
+
+	static int widths[] = { maxtag_x+BORDER_SIZE, maxmenu_x+BORDER_SIZE, 0 };
 	browser->column_widths(widths);
 	browser->column_char('\t');
-	browser->type(2);
+	browser->type(FL_HOLD_BROWSER);
 	//browser->has_scrollbar(Fl_Browser::VERTICAL);
 
-	Xdialog.widget1=(Fl_Widget *)browser;
 	int default_index = 1;
 	for (int i = 0; i < 2 * list_size;i+=2)
 	{
@@ -1156,10 +1044,8 @@ void create_menubox(gchar *optarg, gchar *options[], gint list_size)
 		cell[0] = 0;
 		if (Xdialog.tags)
 		{
-			strcpysafe(cell, options[i],MAX_LABEL_LENGTH);
+			strcpy(cell, options[i]);
 			cell = strcat(cell, "\t");
-			//cell[strlen(cell)]='#';
-			//cell[strlen(cell)]='\0';
 		}
 		if (strcmp(options[i],Xdialog.default_item)==0)
 		{
@@ -1168,17 +1054,21 @@ void create_menubox(gchar *optarg, gchar *options[], gint list_size)
 		cell = strcat(cell,options[i+1]);
 		browser->add(cell);
 	}
-	//browser->select(default_index+1);
-	browser->select(1);
-	Xdialog.window->resizable(browser);
-	Xdialog.type=4;
+
+	browser->select(default_index);
+
 	create_buttons();
-	Xdialog.window->end();
+
+	Xdialog.window->resizable(browser);
+
+	Xdialog.type=XDIALOG_TYPE_MENU;
+	Xdialog.widget1=(Fl_Widget *)browser;
+
 	if (Xdialog.interval>0)
 	{
-	Fl::add_timeout(Xdialog.interval/1000,OutputCallback_menubox);
+		Fl::add_timeout(Xdialog.interval/1000,OutputCallback_menubox);
 	}
-	Xdialog.window->show();
+
 	set_timeout();
 }
 
@@ -1186,76 +1076,56 @@ void create_menubox(gchar *optarg, gchar *options[], gint list_size)
 
 void create_treeview(char *optarg, char *options[], int list_size)
 {
- int oldlevel=-1;
-	char *item = new char[128];
-	item[0] = 0;
-	char *name = new char[128];
-	int depth = 0;
-	int level, i;
-	int params = 4 + Xdialog.tips;
-  int check_height = CHECK_BUTTON_HEIGHT;
-      int button_height = BUTTON_HEIGHT;
-      int backtitle_height = BACKTITLE_HEIGHT;
 
-	char temp[MAX_ITEM_LENGTH];
-	char *_optarg=new char[MAX_LABEL_LENGTH];
-	trim_string(optarg,_optarg,MAX_LABEL_LENGTH);
 	open_window();
-	int row_height=0;
-	int label_h=0;
-	int labeltitle_y=0;
-	if(strlen(Xdialog.backtitle)!=0)
-	{
-	  row_height+=BACKTITLE_HEIGHT;
 
-	}
-	if(strlen(optarg)!=0)
-	{
-	  int _x=0,_y=0;
+  // compute client width area
+  int clientwidth=Xdialog.window->w()-(CLIENT_BORDER_SIZE*2);
 
-	  fl_measure(optarg,_x,_y);
-	  label_h=(_x/Xdialog.xsize+1)*_y;
-	  label_h+=countBackSlash(_optarg)*_y;
-	   labeltitle_y=row_height;
-	  row_height+=label_h;
-	}
-	int browser_h=Xdialog.ysize-row_height-BUTTON_HEIGHT;
-	row_height+=10;
-	Fl_Tree *tree = new Fl_Tree(5, row_height, Xdialog.xsize - 10, browser_h);
-	if(strlen(Xdialog.backtitle)!=0)
-	{
-	  set_backtitle(true);
-	}
-	if(strlen(optarg)!=0)
-	{
+	int next_y=set_label(CLIENT_BORDER_SIZE, Xdialog.title, false);
+	next_y=set_label(next_y, optarg, false);
 
- 	  set_label(optarg,true,0,labeltitle_y+5,Xdialog.xsize,label_h);
-	}
+	// guess on height
+	int browser_h=Xdialog.list_height * ymult;
 
+	Fl_Tree *tree = new Fl_Tree(CLIENT_BORDER_SIZE, next_y, clientwidth, browser_h, 0);
 
+	// get the actual height of items
+	browser_h=calc_tree_height(tree, Xdialog.list_height);
+	tree->size(tree->w(), browser_h);
+	tree->showroot(0);
+
+	next_y+=tree->h()+BORDER_SIZE;
+
+	int depth = 0;
+	int params = 4 + Xdialog.tips;
 
 	Xdialog_array(list_size);
-	for (int i = 0; i < list_size; i++)
-	{
-		strcpysafe(Xdialog.array[i].tag, options[2*i], MAX_ITEM_LENGTH);
-		if (item_status( options[params*i+2], Xdialog.array[i].tag) == 1) {
-			Xdialog.array[0].state = i;
-		}
-	}
-	Xdialog.widget1=(Fl_Widget *)tree;
+	int i;
+
 	for (i = 0; i < list_size; i++) {
-		int state=item_status(options[params*i+2], Xdialog.array[i].tag);
+		// 1=on, 0=off, -1=read-only, -2=unavailable
+		int state=item_status(options[(params*i)+2], options[(params*i)]);
+
+		if (state==-2) {
+				continue;
+		}
+
 		strcpysafe(Xdialog.array[i].tag, options[params*i], MAX_ITEM_LENGTH);
 		strcpysafe(Xdialog.array[i].name, options[params*i + 1], MAX_ITEM_LENGTH);
-		strcpysafe(name, options[params*i + 1], MAX_ITEM_LENGTH);
-		level = atoi(options[params*i + 3]);
+
+		int level = atoi(options[params*i + 3]);
 		Xdialog.array[i].state=level;
+
+		// check for at back at prior level
 		if (i > 0) {
 			if (atoi(options[params*(i - 1) + 3]) > level) {
 				depth = level;
 			}
 		}
+
 		if (i + 1 < list_size) {
+			// check if next item is new level
 			if (level < atoi(options[params*(i + 1) + 3])) {
 				if (atoi(options[params*(i + 1) + 3]) != level + 1) {
 					fprintf(stderr,
@@ -1263,6 +1133,7 @@ void create_treeview(char *optarg, char *options[], int list_size)
 						"by more than one level each time !  Aborting...\n");
 					exit(255);
 				}
+
 				depth++;
 				if (depth > MAX_TREE_DEPTH) {
 					fprintf(stderr,
@@ -1272,10 +1143,12 @@ void create_treeview(char *optarg, char *options[], int list_size)
 					exit(255);
 				}
 			}
-
 		}
-		for(int k=i;k>=0;k--)
-		{
+
+		char temp[MAX_ITEM_LENGTH];
+
+		for(int k=i;k>=0;k--) {
+			// go back to prior level item
 		  if(Xdialog.array[k].state==Xdialog.array[i].state-1)
 		  {
 		    char *temp=new char[MAX_LABEL_LENGTH];
@@ -1285,27 +1158,36 @@ void create_treeview(char *optarg, char *options[], int list_size)
 		    strcpysafe(Xdialog.array[i].tips,temp,MAX_LABEL_LENGTH);
 		    break;
 		  }
+			// stop at level 0
 		  if(Xdialog.array[k].state==0)
-		  {
+			{
 		    strcpysafe(Xdialog.array[i].tips,Xdialog.array[i].name,MAX_LABEL_LENGTH);
 		    break;
 		  }
 		}
-		tree->add(Xdialog.array[i].tips);
-		if(state==1)
-		  tree->select(Xdialog.array[i].tips);
 
+		Fl_Tree_Item *treeitem=tree->add(Xdialog.array[i].tips);
+
+		if (state==1) {
+			treeitem->select();
+			tree->set_item_focus(treeitem);
+		}
+		else if (state==-1) {
+			treeitem->deactivate();
+		}
 	}
 
-	/*for(int i=0;i<list_size;i++)
-	{
-	  tree->add(Xdialog.array[i].tips);
-	}*/
+	create_buttons(next_y);
+
 	glist_size=list_size;
-	Xdialog.type=5;
-	create_buttons();
-	Xdialog.window->end();
-	Xdialog.window->show();
+	Xdialog.widget1=(Fl_Widget *)tree;
+	Xdialog.type=XDIALOG_TYPE_TREE;
+
+	if (Xdialog.interval>0)
+	{
+		Fl::add_timeout(Xdialog.interval/1000,OutputCallback_treeview);
+	}
+
 	set_timeout();
 }
 
@@ -1313,28 +1195,12 @@ void create_treeview(char *optarg, char *options[], int list_size)
 
 void create_filesel(gchar *optarg, gboolean dsel_flag)
 {
-  int check_height = CHECK_BUTTON_HEIGHT;
-  int button_height = BUTTON_HEIGHT;
-  int backtitle_height = BACKTITLE_HEIGHT;
-
-  font_init();
-
-	if (!Xdialog.check)
-		check_height = 0;
-
-	if (!Xdialog.buttons)
-		button_height = 0;
-
-	if (strlen(Xdialog.backtitle) == 0)
-		backtitle_height = 10;
-
-	//open_window();
-	set_backtitle(true);
 	char *output=new char[MAX_LABEL_LENGTH];
 	output[0]=0;
 
 	if(!dsel_flag) {
-	  Fl_File_Chooser *chooser=new Fl_File_Chooser(optarg,"*.*",Fl_File_Chooser::SINGLE,Xdialog.title);
+	  Fl_File_Chooser *chooser=new Fl_File_Chooser(optarg,"*", Fl_File_Chooser::SINGLE, Xdialog.title);
+	  chooser->preview(0);
 	  chooser->visible();
 	  chooser->show();
 	  Fl::run();
@@ -1349,7 +1215,8 @@ void create_filesel(gchar *optarg, gboolean dsel_flag)
 	  }
 	}
 	else {
-	  Fl_File_Chooser *chooser=new Fl_File_Chooser(optarg,"*.*",Fl_File_Chooser::DIRECTORY,Xdialog.title);
+	  Fl_File_Chooser *chooser=new Fl_File_Chooser(optarg,"*", Fl_File_Chooser::DIRECTORY, Xdialog.title);
+	  chooser->preview(0);
 	  chooser->visible();
  	  chooser->show();
 	  Fl::run();
@@ -1391,48 +1258,61 @@ void create_calendar(gchar *optarg, gint day, gint month, gint year)
 
 void create_timebox(gchar *optarg, gint hours, gint minutes, gint seconds)
 {
-  if(Xdialog.xsize==0&&Xdialog.ysize==0)
-  {
+  if(Xdialog.xsize==0 && Xdialog.ysize==0) {
     Xdialog.xsize=40;
     Xdialog.ysize=10;
   }
-  open_window();
-  int row_hight = 0;
-	if (Xdialog.ysize>=60)
-	{
-		row_hight = (Xdialog.ysize - BUTTON_HEIGHT)*0.5;
-	}
-	Fl_Box *box = new Fl_Box(5, row_hight, Xdialog.xsize - 10, row_hight);
+
+	open_window();
+
+  // compute client width area
+  int clientwidth=Xdialog.window->w()-(CLIENT_BORDER_SIZE*2);
+
+	int next_y=set_label(CLIENT_BORDER_SIZE, Xdialog.title, false);
+	next_y=set_label(next_y, optarg, false);
+
+	// make room for label on box
+	//next_y+=ymult;
+
+  int boxheight=SPINNER_HEIGHT*3;
+
+	Fl_Box *box = new Fl_Box(CLIENT_BORDER_SIZE, next_y, clientwidth, boxheight);
 	box->box(FL_BORDER_BOX);
-	Fl_Spinner *spinner1 = new Fl_Spinner(Xdialog.xsize*0.16, row_hight*1.5, 50, 20);
+	box->align(FL_ALIGN_INSIDE|FL_ALIGN_TOP);
+	box->label("Hour:Minutes:Seconds");
+
+	Fl_Spinner *spinner1 = new Fl_Spinner((get_window_width_in_pixels()*0.25)-(SPINNER_WIDTH/2), next_y+(boxheight*0.5), SPINNER_WIDTH, SPINNER_HEIGHT);
 	spinner1->range(0,23);
 	spinner1->type(FL_FLOAT_INPUT);
 	spinner1->value(hours);
-	Fl_Spinner *spinner2 = new Fl_Spinner(Xdialog.xsize*0.48, row_hight*1.5, 50, 20);
+
+	Fl_Spinner *spinner2 = new Fl_Spinner((get_window_width_in_pixels()*0.50)-(SPINNER_WIDTH/2), next_y+(boxheight*0.5), SPINNER_WIDTH, SPINNER_HEIGHT);
 	spinner2->range(0, 59);
 	spinner2->type(FL_FLOAT_INPUT);
 	spinner2->value(minutes);
-	Fl_Spinner *spinner3 = new Fl_Spinner(Xdialog.xsize*0.80, row_hight*1.5, 50, 20);
+
+	Fl_Spinner *spinner3 = new Fl_Spinner((get_window_width_in_pixels()*0.75)-(SPINNER_WIDTH/2), next_y+(boxheight*0.5), SPINNER_WIDTH, SPINNER_HEIGHT);
 	spinner3->range(0, 59);
 	spinner3->type(FL_FLOAT_INPUT);
 	spinner3->value(seconds);
-	set_label(":",true,Xdialog.xsize*0.33,row_hight*1.5,20,20);
-	set_label(":",true,Xdialog.xsize*0.66, row_hight*1.5, 20, 20);
-	Fl_Box *box1 = new Fl_Box(Xdialog.xsize*0.5 - 100, row_hight, 200, 1);
-	set_label( "Hours:Minutes:Seconds",true,Xdialog.xsize*0.5 - 50, row_hight, 100, 0);
-	box1->box(FL_FLAT_BOX);
-	set_label(optarg,true, 0,0, Xdialog.xsize, row_hight);
-	set_backtitle(true);
+
+	set_label(":", true, (get_window_width_in_pixels()*0.375)-(SPINNER_WIDTH/4), next_y+(boxheight*0.5), 20, SPINNER_HEIGHT);
+	set_label(":", true, (get_window_width_in_pixels()*0.625)-(SPINNER_WIDTH/4), next_y+(boxheight*0.5), 20, SPINNER_HEIGHT);
+
 	create_buttons();
+
+	Xdialog.type=XDIALOG_TYPE_TIME;
+	Xdialog.widget1=(Fl_Widget *)spinner1;
+	Xdialog.widget2=(Fl_Widget *)spinner2;
+	Xdialog.widget3=(Fl_Widget *)spinner3;
+
 	if (Xdialog.interval>0)
 	{
 		Fl::add_timeout(Xdialog.interval/1000,OutputCallback_timebox);
 	}
-		set_timeout();
-	Xdialog.type=6;
-	Xdialog.widget1=(Fl_Widget *)spinner1;
-	Xdialog.widget2=(Fl_Widget *)spinner2;
-	Xdialog.widget3=(Fl_Widget *)spinner3;
+
+	set_timeout();
+
 }
 
 

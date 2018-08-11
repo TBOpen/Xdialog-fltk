@@ -23,7 +23,11 @@ void OutputCallback_rangebox(void *);
 
 void sliderCallback(Fl_Object *o,void *data);
 
-void OutputCallback_ItemList(void *);
+void OutputCallback_CheckList(void *);
+
+void OutputCallback_BuildList(void *);
+
+void OutputCallback_treeview(void *);
 
 void OutputCallback_menubox(void *);
 

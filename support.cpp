@@ -62,32 +62,43 @@ int my_scanf(char *buffer)
 	char *p;
 	int ret;
 
-	fcntl(0, F_SETFL, O_NONBLOCK);
+	static bool setnonblock=false;
+	if (!setnonblock) {
+		setnonblock=true;
+		fcntl(fileno(stdin), F_SETFL, O_NONBLOCK);
+	}
 
-	ret = read(0, (input_buffer + input_buffer_pos), MY_SCANF_BUFSIZE - input_buffer_pos);
+	// this z-terms callers buffer so we need to limit the size to leave room for z-term should the lines be longer than one buffer
+	ret = read(fileno(stdin), (input_buffer + input_buffer_pos), (MY_SCANF_BUFSIZE-1) - input_buffer_pos);
 	if ( ret > 0 )
 		input_buffer_pos += ret;
 
-	if ((p = (char *)memchr(input_buffer, '\n', input_buffer_pos)) != NULL) {
+	if ((p = (char *)memchr(input_buffer, '\n', input_buffer_pos)) != NULL || input_buffer_pos==(MY_SCANF_BUFSIZE-1)) {
+		if (p==NULL) {
+			p=input_buffer+MY_SCANF_BUFSIZE-1;
+		}
 		strncpy(buffer, input_buffer, p - input_buffer);
 		buffer[p - input_buffer] = '\0';
 		memmove(input_buffer, p+1, input_buffer_pos - (p - input_buffer));
 		input_buffer_pos -= p - input_buffer + 1;
-	} else {
+	}
+	else {
 		if (ret == 0)
 			return EOF;
+
 		if (ret == -1) {
 			switch (errno) {
 				/* nothing to read */
 				case EINTR:
 				case EAGAIN:
 					return 0;
+
 				/* like EOF */
 				case EINVAL:
 				case EBADF:
 					return EOF;
 			}
-	        }
+		}
 	}
 	return 1;
 }
@@ -103,7 +114,7 @@ void backslash_n_to_linefeed(const char *s0, char *s, int max_len)
 
 	while (strstr(s, "\\n") != NULL) {
 		tmp = strstr(s, "\\n");
-		strcpy(tmp, tmp+1);
+		memmove(tmp, tmp+1, strlen(tmp+1)+1);
 		*tmp = '\n';
 	}
 
@@ -191,12 +202,13 @@ void trim_string(const char *s0, char *s, int max_len)
 
 void Xdialog_array(int elements)
 {
-	Xdialog.array =(listname *) malloc((elements + 1)*sizeof(listname));
+	size_t allocsize=(elements + 1)*sizeof(listname);
+	Xdialog.array =(listname *) malloc(allocsize);
 	if (Xdialog.array == NULL) {
-		fprintf(stderr,
-			XDIALOG": problem while allocating memory, exiting !\n");
+		fprintf(stderr, XDIALOG": problem while allocating memory, exiting !\n");
 		exit(255);
 	}
+	memset(Xdialog.array, 0, allocsize);
 	Xdialog.array[elements].state = -1;
 }
 

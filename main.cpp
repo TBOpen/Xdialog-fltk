@@ -121,7 +121,7 @@ Box options:\n\
   --editbox	<file> <height> <width>\n\
   --tailbox	<file> <height> <width>\n\
   --logbox	<file> <height> <width>\n\
-  --menubox	<text> <height> <width> <menu height> <tag1> <item1> {<help1>}...\n\
+  --menu	<text> <height> <width> <menu height> <tag1> <item1> {<help1>}...\n\
   --checklist	<text> <height> <width> <list height> <tag1> <item1> <status1> {<help1>}...\n\
   --radiolist	<text> <height> <width> <list height> <tag1> <item1> <status1> {<help1>}...\n\
   --buildlist	<text> <height> <width> <list height> <tag1> <item1> <status1> {<help1>}...\n\
@@ -558,6 +558,7 @@ int main(int argc, char *argv[])
 	gdouble colors[4];
 	gint beep_tmp, timeout_tmp;
 	gboolean icon_tmp, check_tmp;
+	gboolean cancel_tmp, yesno_tmp;
 	time_t curr_time;
 	struct tm *localdate;
 	static struct option long_options[] = {
@@ -583,7 +584,7 @@ int main(int argc, char *argv[])
                 {"spinbox",		1, 0, B_SPINBOX},
                 {"2spinsbox",		1, 0, B_2SPINSBOX},
                 {"3spinsbox",		1, 0, B_3SPINSBOX},
-                {"menubox",		1, 0, B_MENUBOX},
+                {"menu",		1, 0, B_MENUBOX},
                 {"checklist",		1, 0, B_CHECKLIST},
                 {"radiolist",		1, 0, B_RADIOLIST},
                 {"buildlist",		1, 0, B_BUILDLIST},
@@ -666,7 +667,7 @@ int main(int argc, char *argv[])
 #endif
 
 	/* Check if the dialog high compatibility mode is requested */
-	dialog_compat = TRUE; //is_true(HIGH_DIALOG_COMPAT);
+	dialog_compat = is_true(HIGH_DIALOG_COMPAT);
 
 	memset(&Xdialog, 0, sizeof(Xdialog_data));	/* Set all parameters to zero/NULL */
 
@@ -700,12 +701,11 @@ int main(int argc, char *argv[])
 	Xdialog.output		= stderr;		/* Default output for Xdialog results */
 	Xdialog.placement	= GTK_WIN_POS_CENTER;	/* Center window on screen as default */
 	Xdialog.buttons_style	= ICON_AND_TEXT;	/* Default buttons style (icon+text) */
-	Xdialog.buttons		= TRUE;			/* Display buttons as default */
+	Xdialog.buttons		= TRUE ;			/* Display 2 buttons as default */
 	Xdialog.ok_button	= TRUE;			/* Display "OK" button as default */
 	Xdialog.cancel_button	= TRUE;			/* Display "Cancel" button as default */
+	Xdialog.yesno_button = FALSE; /* Normal "OK" and "Cancel" buttons */
 	Xdialog.tags		= TRUE;
-	strcpysafe(Xdialog.ok_label,"Ok",MAX_LABEL_LENGTH);
-	strcpysafe(Xdialog.cancel_label,"Cancel",MAX_LABEL_LENGTH);
 	/* Display tags before items in lists */
 #if 0	/* Not needed because of the memset: listed here as a reminder only... */
 	Xdialog.passwd		= 0;			/* Don't use passwd input as default */
@@ -786,6 +786,7 @@ show_again:
 		switch (optcode) {
 		/* Box options */
 			case B_YESNO:		/* a yesno box */
+				Xdialog.yesno_button = TRUE;
 				get_box_size(argc, argv, &optind);
 				create_msgbox(optarg, TRUE);
 				win = TRUE;
@@ -1286,33 +1287,48 @@ show_again:
 */
 
 			switch (Xdialog.exit_code) {
-				case 0: /* OK/Yes/Next pressed or normal termination */
+				case XDIALOG_PRESS_YES: /* OK/Yes/Next pressed or normal termination */
 					break;
-				case 2:	/* Help button pressed */
-					if (strlen(help_text) == 0)
+
+				case XDIALOG_PRESS_HELP:	/* Help button pressed */
+					if (help_text[0] == 0)
 						return Xdialog.exit_code;
+
 					Xdialog.help = FALSE;
 					Xdialog.size_in_pixels=TRUE;
+
 					strcpy(title_tmp, Xdialog.title);
 					strcpy(Xdialog.title, HELP);
+
 					strcpy(backt_tmp, Xdialog.backtitle);
 					Xdialog.backtitle[0] = 0;
+
 					icon_tmp = Xdialog.icon;
 					Xdialog.icon = FALSE;
+
 					check_tmp = Xdialog.check;
 					Xdialog.check = FALSE;
+
 					beep_tmp = Xdialog.beep;
 					Xdialog.beep = 0;
+
 					timeout_tmp = Xdialog.timeout;
 					Xdialog.timeout = 0;
+
+					cancel_tmp = Xdialog.cancel_button;
+					yesno_tmp = Xdialog.yesno_button;
+					Xdialog.yesno_button = FALSE;
+
 					create_msgbox(help_text, FALSE);
-					/*gtk_widget_show(Xdialog.window);
-					gtk_main();
-					*/
+
 					Xdialog.window->show();
 					Fl::run();
+
 					if (Xdialog.exit_code != 0)
 						return Xdialog.exit_code;
+
+					Xdialog.yesno_button = yesno_tmp;
+					Xdialog.cancel_button = cancel_tmp;
 					Xdialog.timeout = timeout_tmp;
 					Xdialog.beep = beep_tmp;
 					Xdialog.icon = icon_tmp;
@@ -1323,6 +1339,7 @@ show_again:
 					optind = old_optind;
 					Xdialog.exit_code = 2;	/* avoid beeping */
 					goto show_again;
+
 				default: /* No/Cancel/Previous/close pressed or error */
 					return Xdialog.exit_code;
 			}
@@ -1340,6 +1357,7 @@ show_again:
 			Xdialog.buttons		= TRUE;
 			Xdialog.ok_button	= TRUE;
 			Xdialog.cancel_button	= TRUE;
+			Xdialog.yesno_button = FALSE;
 			Xdialog.help		= FALSE;
 			Xdialog.print		= FALSE;
 			Xdialog.default_no	= FALSE;
