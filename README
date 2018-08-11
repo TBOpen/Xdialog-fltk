@@ -1,21 +1,9 @@
 # Xdialog-fltk
-Port of Xdialog to FLTK
+Port of Xdialog 2.3.1 to FLTK
 
 ---------------------------------------
-Current State - Work In Progress (WIP)
+Current State - Usable
 ---------------------------------------
 
-The initial port was done through freelancer.com but the results were not 
-acceptable for release.
+This is the initial release of a usable port.
 
-It is based on Xdialog 2.3.1
-
-What has been done so far:
-
-1)	Separated the single .cpp file provided back in to separate modules.
-2)	Removed the commented out code.
-3)	Started adding and correcting fundamental functions such as font_init() 
-    and set_window_size_and_placement()
-
-This was only added to a public repository (at this time) for others to use 
-to reproduce issues found using FLTK 1.4 currently in development.
