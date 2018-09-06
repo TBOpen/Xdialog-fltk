@@ -70,7 +70,7 @@ static void font_init(void)
 {
 	// select our font
   fl_font(FL_BOLD, LABEL_TEXT_HEIGHT);
-  int width, height;
+  int width=0, height;
   fl_measure(ALPHANUM_CHARS, width, height);
   ffxmult = width / 62;		/* 62 = strlen(ALPHANUM_CHARS) */
 	ffymult = height;
@@ -265,7 +265,8 @@ static int get_window_height_in_pixels(void)
 int calc_browser_height(Fl_Browser_ *browser, int num_items)
 {
 	// (incr_size is protected)
-	return 4+((browser->textsize()+2)*num_items);
+	float sf=Fl::screen_scale(0);
+	return (5/sf)+((browser->textsize()+2)*num_items);
 }
 
 //-------------------------------------------------------------------------
@@ -323,9 +324,11 @@ static int create_buttons(int next_y)
 
 	const char *labels[XDIALOG_MAX_BUTTONS];
 	const Fl_Callback *callbacks[XDIALOG_MAX_BUTTONS];
+	int shortcuts[XDIALOG_MAX_BUTTONS];
 
 	memset(labels, 0, sizeof(labels));
 	memset(callbacks, 0, sizeof(callbacks));
+	memset(shortcuts, 0, sizeof(shortcuts));
 
 	if (Xdialog.buttons) {
 
@@ -338,13 +341,21 @@ static int create_buttons(int next_y)
 		else {
 			if (Xdialog.ok_button) {
 				callbacks[buttoncount]=click_yes;
-				labels[buttoncount]=Xdialog.yesno_button ? "Yes" : Xdialog.ok_label;
+				if (!Xdialog.yesno_button) {
+					labels[buttoncount]=Xdialog.ok_label;
+					shortcuts[buttoncount]=FL_Enter;
+				}
+				else labels[buttoncount]="&Yes";
 				buttoncount++;
 			}
 
 			if (Xdialog.cancel_button) {
 				callbacks[buttoncount]=click_no;
-				labels[buttoncount]=Xdialog.yesno_button ? "No" : Xdialog.cancel_label;
+				if (!Xdialog.yesno_button) {
+					labels[buttoncount]=Xdialog.cancel_label;
+					shortcuts[buttoncount]=FL_Escape;
+				}
+				else labels[buttoncount]="&No";
 				buttoncount++;
 			}
 
@@ -358,6 +369,7 @@ static int create_buttons(int next_y)
 		if (Xdialog.help) {
 			callbacks[buttoncount]=click_help;
 			labels[buttoncount]=HELP;
+			shortcuts[buttoncount]=FL_F+1;
 			buttoncount++;
 		}
 	}
@@ -372,6 +384,8 @@ static int create_buttons(int next_y)
 		// now figure out what label and callback it should have
 		btn->label(labels[b]);
 		btn->callback(callbacks[b]);
+		btn->shortcut(shortcuts[b]);
+    btn->click_on_enter_key(1);
 	}
 
 
@@ -508,6 +522,16 @@ void create_msgbox(gchar *optarg, gboolean yesno)
 
 void create_infobox(gchar *optarg, gint timeout)
 {
+
+  // adjust height of window if going to add a button
+  if (!dialog_compat && Xdialog.buttons) {
+  	// presume if working in lines/chars need to add space, if pixes
+  	// then already space for any buttons
+		if (!Xdialog.size_in_pixels) {
+				Xdialog.ysize+=1;
+		}
+  }
+
 
 	open_window();
 
@@ -844,6 +868,8 @@ void create_itemlist(char *optarg, int type, char *options[], int list_size)
 
 	Fl_Check_Browser *browser = new Fl_Check_Browser(CLIENT_BORDER_SIZE, browser_y, clientwidth, browser_h);
 
+  browser->full_kb_select(1);
+
 	// get the actual height of items
 	browser_h=calc_browser_height(browser, Xdialog.list_height);
 	browser->size(browser->w(), browser_h);
@@ -906,23 +932,33 @@ void create_buildlist(gchar *optarg, gchar *options[], gint list_size)
 	int browser_h=Xdialog.list_height * ymult;
 
 	Fl_Browser *first_Browser = new Fl_Browser(CLIENT_BORDER_SIZE, next_y, clientwidth*0.4, browser_h);
+  first_Browser->full_kb_select(1);
+	first_Browser->item_shortcuts(TRUE);
+	first_Browser->callback(BrowserCallback);
 
 	// get the actual height of items
 	browser_h=calc_browser_height(first_Browser, Xdialog.list_height);
 	first_Browser->size(first_Browser->w(), browser_h);
 
+	Fl_Button *add = new Fl_Button(CLIENT_BORDER_SIZE + (clientwidth*0.4) + BORDER_SIZE, next_y+(browser_h*0.3), (clientwidth*0.2)-(BORDER_SIZE*2), XDIALOG_BUTTON_HEIGHT);
+	add->label("&ADD");
+	Fl_Button *remove = new Fl_Button(CLIENT_BORDER_SIZE + (clientwidth*0.4) + BORDER_SIZE, next_y+(browser_h*0.6), (clientwidth*0.2)-(BORDER_SIZE*2), XDIALOG_BUTTON_HEIGHT);
+	remove->label("&REMOVE");
+
 
 	Fl_Browser *second_Browser = new Fl_Browser(CLIENT_BORDER_SIZE + (clientwidth*0.6), next_y, clientwidth*0.4, browser_h);
+	second_Browser->full_kb_select(1);
+	second_Browser->item_shortcuts(TRUE);
+	second_Browser->callback(BrowserCallback);
 
-	Fl_Button *add = new Fl_Button(CLIENT_BORDER_SIZE + (clientwidth*0.4) + BORDER_SIZE, next_y+(browser_h*0.3), (clientwidth*0.2)-(BORDER_SIZE*2), XDIALOG_BUTTON_HEIGHT);
-	add->label("ADD");
-	Fl_Button *remove = new Fl_Button(CLIENT_BORDER_SIZE + (clientwidth*0.4) + BORDER_SIZE, next_y+(browser_h*0.6), (clientwidth*0.2)-(BORDER_SIZE*2), XDIALOG_BUTTON_HEIGHT);
 
 
 	first_Browser->has_scrollbar(Fl_Check_Browser::VERTICAL);
 	first_Browser->type(FL_MULTI_BROWSER);
+	first_Browser->when(FL_WHEN_ENTER_KEY);
 	second_Browser->has_scrollbar(Fl_Check_Browser::VERTICAL);
 	second_Browser->type(FL_MULTI_BROWSER);
+	second_Browser->when(FL_WHEN_ENTER_KEY);
 
 	//////
   char temp[MAX_LABEL_LENGTH];
@@ -944,8 +980,6 @@ void create_buildlist(gchar *optarg, gchar *options[], gint list_size)
 	first_Browser->select(1);
 	second_Browser->select(1);
 
-	remove->label("REMOVE");
-	remove->deactivate();
 
 	add->callback(AddCallback);
 	remove->callback(RemoveCallback);
@@ -999,6 +1033,10 @@ void create_menubox(gchar *optarg, gchar *options[], gint list_size)
 	int browser_h=Xdialog.list_height * ymult;
 
 	Fl_Browser *browser = new Fl_Browser(CLIENT_BORDER_SIZE, next_y, clientwidth, browser_h, 0);
+  browser->full_kb_select(1);
+	browser->item_shortcuts(TRUE);
+	browser->callback(BrowserCallback);
+
 	// get the actual height of items
 	browser_h=calc_browser_height(browser, Xdialog.list_height);
 	browser->size(browser->w(), browser_h);
@@ -1009,8 +1047,6 @@ void create_menubox(gchar *optarg, gchar *options[], gint list_size)
 		strcpysafe(Xdialog.array[i].tag, options[2*i], MAX_ITEM_LENGTH);
 	}
 
-	int old_tag=0;
-	int old_menu=0;
 	int maxtag_x = 0;
 	int maxtag_y = 0;
 	int maxmenu_x = 0;
@@ -1018,17 +1054,17 @@ void create_menubox(gchar *optarg, gchar *options[], gint list_size)
 
 	for (int i = 0; i < 2*list_size;i+=2)
 	{
-	  maxtag_x=0;
-	  maxmenu_x=0;
-	  fl_measure(options[i],maxtag_x,maxtag_y);
-	  //printf("%s\n",options[i]);
-	  fl_measure(options[i+1],maxmenu_x,maxmenu_y);
+	  int w_x=0;
+	  fl_measure(options[i],w_x,maxtag_y);
 
-	  if(maxtag_x>old_tag)
-	    old_tag=maxtag_x;
+	  if(w_x>maxtag_x)
+	    maxtag_x=w_x;
 
-	  if(maxmenu_x>old_menu)
-	    old_menu=maxmenu_x;
+	  w_x=0;
+	  fl_measure(options[i+1],w_x,maxmenu_y);
+
+	  if(w_x>maxmenu_x)
+	    maxmenu_x=w_x;
 	}
 
 	static int widths[] = { maxtag_x+BORDER_SIZE, maxmenu_x+BORDER_SIZE, 0 };
@@ -1049,17 +1085,17 @@ void create_menubox(gchar *optarg, gchar *options[], gint list_size)
 		}
 		if (strcmp(options[i],Xdialog.default_item)==0)
 		{
-			default_index = i*0.5;
+			default_index = i+1;
 		}
 		cell = strcat(cell,options[i+1]);
 		browser->add(cell);
 	}
 
-	browser->select(default_index);
-
 	create_buttons();
 
 	Xdialog.window->resizable(browser);
+
+	browser->select(default_index);
 
 	Xdialog.type=XDIALOG_TYPE_MENU;
 	Xdialog.widget1=(Fl_Widget *)browser;

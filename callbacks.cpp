@@ -146,13 +146,7 @@ void click_yes(Fl_Widget *o, void*)
 	}
 
 	if(Xdialog.type==XDIALOG_TYPE_MENU)	{
-	  Fl_Browser *input=(Fl_Browser *)Xdialog.widget1;
-	  for(int i=0;i<input->size()+1;i++) {
-	    if(input->selected(i)==1) {
-	      fprintf(Xdialog.output,"%s",Xdialog.array[i-1].tag);
-	      printf("tag::%s\n",Xdialog.array[i-1].tag);
-	    }
-	  }
+		OutputMenuBox();
 	}
 
 	if(Xdialog.type==XDIALOG_TYPE_TREE) {
@@ -173,7 +167,7 @@ void click_yes(Fl_Widget *o, void*)
 
 	if(Xdialog.type==XDIALOG_TYPE_RANGEBOX) {
 	  Fl_Slider *slider=(Fl_Slider *)Xdialog.widget1;
-	  printf("%d\n",(int)slider->value());
+	  fprintf(Xdialog.output, "%d\n",(int)slider->value());
 	}
 
 	Xdialog.window->hide();
@@ -460,4 +454,32 @@ void gauge_timeout(void *)
   } while(ret==1);
 
 	Fl::repeat_timeout(1, gauge_timeout);
+}
+
+//-------------------------------------------------------------------------
+
+void BrowserCallback(Fl_Widget *o, void *)
+{
+	// check for double click
+	if (Fl::event_clicks()) {
+		// yes, so consider it a click on ok/yes
+		if(Xdialog.type==XDIALOG_TYPE_MENU)	{
+			Xdialog.exit_code = XDIALOG_PRESS_YES;
+			OutputMenuBox();
+			Xdialog.window->hide();
+		}
+
+		if(Xdialog.type==XDIALOG_TYPE_CHECKLIST)	{
+			Xdialog.exit_code = XDIALOG_PRESS_YES;
+			OutputChecklist();
+			Xdialog.window->hide();
+		}
+	}
+	// for this type we get the callback when enter pressed (get call back on double click too so use else)
+	else if(Xdialog.type==XDIALOG_TYPE_BROWSERLIST)	{
+		Xdialog.exit_code = XDIALOG_PRESS_YES;
+		OutputBuildList();
+		Xdialog.window->hide();
+	}
+
 }

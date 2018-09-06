@@ -41,3 +41,4 @@ void info_timeout(void *);
 
 void gauge_timeout(void *);
 
+void BrowserCallback(Fl_Widget *o, void *);

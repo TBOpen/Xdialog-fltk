@@ -753,13 +753,18 @@ int main(int argc, char *argv[])
 */
 
   Fl::lock();
-  Fl::scheme("plastic");
+  //Fl::scheme("plastic");
+  Fl::scheme("smooth");
   Fl::background(182, 198, 255);
   Fl::get_system_colors();
-  //fl_force_wrap_breaks=1;
+	fl_force_wrap_breaks=1;
   //Fl::copy_labels(TRUE);
   FL_NORMAL_SIZE=12;
-  //Fl::new_shortcut_logic=true;
+//  Fl::new_shortcut_logic=true;
+  if (Fl::w()>1200) {
+    Fl::screen_scale(0, Fl::w()/1200.0);
+  }
+
 
 	opterr = 0;
 
@@ -1038,7 +1043,7 @@ show_again:
 					year = localdate->tm_year + 1900;
 				}
 				create_calendar(optarg, day, month, year);
-				win = TRUE;
+//				win = TRUE;
 				break;
 			case B_TIMEBOX:		/* a time box */
 				get_box_size(argc, argv, &optind);
