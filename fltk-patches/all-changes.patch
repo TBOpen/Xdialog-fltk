@@ -1,0 +1,3389 @@
+Index: configure.ac
+===================================================================
+--- configure.ac	(revision 13043)
++++ configure.ac	(working copy)
+@@ -403,7 +403,14 @@
+ AC_SUBST(FLUID)
+ 
+ AC_ARG_ENABLE(threads, [  --enable-threads        enable multi-threading support [[default=yes]]])
++NEW_PREFIX_SYMBOL_FLAG="-DFLTK_USE_NEW_PREFIX_SYMBOL=-1"
+ 
++AC_ARG_ENABLE(newprefix, [  --enable-newprefix      enable use of new prefix symbol 0x0F [[default=no]]])
++if test x$enable_newprefix = xyes; then
++  NEW_PREFIX_SYMBOL_FLAG="-DFLTK_USE_NEW_PREFIX_SYMBOL=1"
++fi
++AC_SUBST(NEW_PREFIX_SYMBOL_FLAG)
++
+ AC_ARG_WITH(optim, [  --with-optim="flags"    use custom optimization flags])
+ 
+ AC_ARG_WITH(archflags, [  --with-archflags="flags"
+Index: examples/wizard-simple.cxx
+===================================================================
+--- examples/wizard-simple.cxx	(revision 13043)
++++ examples/wizard-simple.cxx	(working copy)
+@@ -41,7 +41,7 @@
+     // Wizard: page 1
+     {
+         Fl_Group *g = new Fl_Group(0,0,400,300);
+-        Fl_Button *next = new Fl_Button(290,265,100,25,"Next @->"); next->callback(next_cb);
++        Fl_Button *next = new Fl_Button(290,265,100,25,"Next " FL_RT_ARROW_TX); next->callback(next_cb);
+         Fl_Multiline_Output *out = new Fl_Multiline_Output(10,30,400-20,300-80,"Welcome");
+         out->labelsize(20);
+         out->align(FL_ALIGN_TOP|FL_ALIGN_LEFT);
+@@ -51,8 +51,8 @@
+     // Wizard: page 2
+     {
+         Fl_Group *g = new Fl_Group(0,0,400,300);
+-        Fl_Button *next = new Fl_Button(290,265,100,25,"Next @->"); next->callback(next_cb);
+-        Fl_Button *back = new Fl_Button(180,265,100,25,"@<- Back"); back->callback(back_cb);
++        Fl_Button *next = new Fl_Button(290,265,100,25,"Next " FL_RT_ARROW_TX); next->callback(next_cb);
++        Fl_Button *back = new Fl_Button(180,265,100,25,FL_LT_ARROW_TX " Back"); back->callback(back_cb);
+         Fl_Multiline_Output *out = new Fl_Multiline_Output(10,30,400-20,300-80,"Terms And Conditions");
+         out->labelsize(20);
+         out->align(FL_ALIGN_TOP|FL_ALIGN_LEFT);
+@@ -63,7 +63,7 @@
+     {
+         Fl_Group *g = new Fl_Group(0,0,400,300);
+         Fl_Button *done = new Fl_Button(290,265,100,25,"Finish"); done->callback(done_cb);
+-        Fl_Button *back = new Fl_Button(180,265,100,25,"@<- Back"); back->callback(back_cb);
++        Fl_Button *back = new Fl_Button(180,265,100,25, FL_LT_ARROW_TX " Back"); back->callback(back_cb);
+         Fl_Multiline_Output *out = new Fl_Multiline_Output(10,30,400-20,300-80,"Finish");
+         out->labelsize(20);
+         out->align(FL_ALIGN_TOP|FL_ALIGN_LEFT);
+Index: FL/Enumerations.H
+===================================================================
+--- FL/Enumerations.H	(revision 13043)
++++ FL/Enumerations.H	(working copy)
+@@ -422,7 +422,7 @@
+  */
+ enum Fl_When { // Fl_Widget::when():
+   FL_WHEN_NEVER		= 0,	///< Never call the callback
+-  FL_WHEN_CHANGED	= 1,	///< Do the callback only when the widget value changes
++  FL_WHEN_CHANGED	= 1,	///< Do the callback only when the widget value changes (or checkbox changes)
+   FL_WHEN_NOT_CHANGED	= 2,	///< Do the callback whenever the user interacts with the widget
+   FL_WHEN_RELEASE	= 4,	///< Do the callback when the button or key is released and the value changes
+   FL_WHEN_RELEASE_ALWAYS= 6,	///< Do the callback when the button or key is released, even if the value doesn't change
+@@ -1230,8 +1230,66 @@
+ #    define inactive	fl_inactive
+ #  endif // FLTK_1_0_COMPAT
+ 
++
++#if (FLTK_USE_NEW_PREFIX_SYMBOL==1)
++
++  #define FL_SYMBOL_CHAR '\x0F'
++  #define FL_SYMBOL_TX "\x0F"
++
++  #define FL_UP_TRIANGLE_TX "\x0F8>"
++  #define FL_DN_TRIANGLE_TX "\x0F2>"
++
++  #define FL_UP_ARROW_TX "\x0F-42<"
++  #define FL_DN_ARROW_TX "\x0F-42>"
++  #define FL_LT_ARROW_TX "\x0F<-"
++  #define FL_RT_ARROW_TX "\x0F->"
++  #define FL_SYM_FILEOPEN_TX "\x0Ffileopen"
++  #define FL_SYM_CROSS_TX "\x0F-3refresh"
++  #define FL_SYM_SEARCH_TX "\x0Fsearch"
++
++  #define FL_FLUID_LF_ALIGN_TX "\x0F-1<-"
++  #define FL_FLUID_RT_ALIGN_TX "\x0F-1->"
++  #define FL_FLUID_TOP_ALIGN_TX "\x0F-18"
++  #define FL_FLUID_BOT_ALIGN_TX "\x0F-12"
++  #define FL_FLUID_INSIDE_ALIGN_TX "\x0F-3square"
++
++  #define FL_COUNTER_LF2_TX "\x0F-4<<"
++  #define FL_COUNTER_LF_TX "\x0F-4<"
++  #define FL_COUNTER_RT2_TX "\x0F-4>>"
++  #define FL_COUNTER_RT_TX "\x0F-4>"
++
++#elif (FLTK_USE_NEW_PREFIX_SYMBOL==-1)
++  #define FL_SYMBOL_CHAR '@'
++  #define FL_SYMBOL_TX "@"
++
++  #define FL_UP_TRIANGLE_TX "@8>"
++  #define FL_DN_TRIANGLE_TX "@2>"
++
++  #define FL_UP_ARROW_TX "@-42<"
++  #define FL_DN_ARROW_TX "@-42>"
++  #define FL_LT_ARROW_TX "@<-"
++  #define FL_RT_ARROW_TX "@->"
++  #define FL_SYM_FILEOPEN_TX "@fileopen"
++  #define FL_SYM_CROSS_TX "@-3refresh"
++  #define FL_SYM_SEARCH_TX "@search"
++
++  #define FL_FLUID_LF_ALIGN_TX "@-1<-"
++  #define FL_FLUID_RT_ALIGN_TX "@-1->"
++  #define FL_FLUID_TOP_ALIGN_TX "@-18"
++  #define FL_FLUID_BOT_ALIGN_TX "@-12"
++  #define FL_FLUID_INSIDE_ALIGN_TX "@-3square"
++
++  #define FL_COUNTER_LF2_TX "@-4<<"
++  #define FL_COUNTER_LF_TX "@-4<"
++  #define FL_COUNTER_RT2_TX "@-4>>"
++  #define FL_COUNTER_RT_TX "@-4>"
++#else
++  #error "FLTK_USE_NEW_PREFIX_SYMBOL not set - use 'make clean' for build of FLTK or 'fflk-config --cxxflags' for applications"
+ #endif
+ 
++
++#endif
++
+ //
+ // End of "$Id$".
+ //
+Index: FL/Fl.H
+===================================================================
+--- FL/Fl.H	(revision 13043)
++++ FL/Fl.H	(working copy)
+@@ -208,6 +208,17 @@
+   static void damage(int d) {damage_ = d;}
+   
+ public:
++
++  // define symbol character for third party library builders who want
++  // to provide a single library and support builds using old @ symbol
++  // prefix or new 0x0F symbol prefix.
++  static const char symbol_prefix_char;
++
++  // variable to determine if new method used to handle shortcuts should
++  // be used.
++  static bool new_shortcut_logic;
++
++
+   /** Enumerator for global FLTK options.
+       These options can be set system wide, per user, or for the running
+       application only.
+@@ -256,6 +267,9 @@
+     /// value.
+     /// When switched off, no such window gets displayed.
+     OPTION_SHOW_SCALING,
++      /// Make a copy of the labels provided to Fl_Widget instead of
++      /// using the pointer passed to it.
++    OPTION_COPY_LABELS,
+       // don't change this, leave it always as the last element
+       /// For internal use only.
+     OPTION_LAST
+@@ -1116,6 +1130,10 @@
+   /** Sets the functions to call to draw and measure a specific labeltype. */
+   static void set_labeltype(Fl_Labeltype, Fl_Labeltype from); // is it defined ?
+ 
++  // labels:
++  static void copy_labels(int v) { option(OPTION_COPY_LABELS, (v!=0)); };
++  static int  copy_labels() { return option(OPTION_COPY_LABELS); };
++
+   // boxtypes:
+   static Fl_Box_Draw_F *get_boxtype(Fl_Boxtype);
+   static void set_boxtype(Fl_Boxtype, Fl_Box_Draw_F*,uchar,uchar,uchar,uchar);
+Index: FL/fl_ask.H
+===================================================================
+--- FL/fl_ask.H	(revision 13043)
++++ FL/fl_ask.H	(working copy)
+@@ -56,7 +56,12 @@
+ FL_EXPORT int fl_choice(const char *q,const char *b0,const char *b1,const char *b2,...) __fl_attr((__format__ (__printf__, 1, 5)));
+ FL_EXPORT const char *fl_input(const char *label, const char *deflt = 0, ...) __fl_attr((__format__ (__printf__, 1, 3)));
+ FL_EXPORT const char *fl_password(const char *label, const char *deflt = 0, ...) __fl_attr((__format__ (__printf__, 1, 3)));
++FL_EXPORT const char *fl_input_n(const char *label, int maxinput, const char *deflt = 0, ...) __fl_attr((__format__ (__printf__, 1, 4)));
++FL_EXPORT const char *fl_password_n(const char *label, int maxinput, const char *deflt = 0, ...) __fl_attr((__format__ (__printf__, 1, 4)));
+ 
++// set the icon character for fl_choice - set to 0 for default
++FL_EXPORT void fl_choice_icon(char iconchar);
++
+ FL_EXPORT Fl_Widget *fl_message_icon();
+ extern FL_EXPORT Fl_Font fl_message_font_;
+ extern FL_EXPORT Fl_Fontsize fl_message_size_;
+Index: FL/Fl_Browser.H
+===================================================================
+--- FL/Fl_Browser.H	(revision 13043)
++++ FL/Fl_Browser.H	(working copy)
+@@ -29,8 +29,6 @@
+ #include "Fl_Browser_.H"
+ #include "Fl_Image.H"
+ 
+-struct FL_BLINE;
+-
+ /**
+   The Fl_Browser widget displays a scrolling list of text
+   lines, and manages all the storage for the text.  This is not a text
+@@ -78,7 +76,21 @@
+   For more info, see find_item(int).
+ */
+ class FL_EXPORT Fl_Browser : public Fl_Browser_ {
++protected:
+ 
++  struct FL_BLINE { // data is in a linked list of these
++    FL_BLINE* prev;
++    FL_BLINE* next;
++    void* data;
++    Fl_Image* icon;
++    int width;      // width for updating width fast
++    short length;		// sizeof(txt)-1, may be longer than string
++    char flags;		// selected, displayed
++    char txt[1];		// start of allocated array
++  };
++
++private:
++
+   FL_BLINE *first;		// the array of lines
+   FL_BLINE *last;
+   FL_BLINE *cache;
+@@ -86,11 +98,15 @@
+   int lines;                	// Number of lines
+   int full_height_;
+   const int* column_widths_;
+-  char format_char_;		// alternative to @-sign
++  char format_char_;    // alternative to FL_SYMBOL_CHAR-sign
+   char column_char_;		// alternative to tab
+ 
+ protected:
++  static const int SELECTED =     1;
++  static const int NOTDISPLAYED = 2;
++  static const int CHECKED =      4;
+ 
++
+   // required routines for Fl_Browser_ subclass:
+   void* item_first() const ;
+   void* item_next(void* item) const ;
+@@ -100,6 +116,7 @@
+   void item_select(void* item, int val);
+   int item_height(void* item) const ;
+   int item_width(void* item) const ;
++  int item_quick_width(void *item) const;
+   void item_draw(void* item, int X, int Y, int W, int H) const ;
+   int full_height() const ;
+   int incr_height() const ;
+@@ -207,9 +224,10 @@
+   ~Fl_Browser() { clear(); }
+ 
+   /**
+-    Gets the current format code prefix character, which by default is '\@'.
++    Gets the current format code prefix character, which by default is FL_SYMBOL_CHAR.
+     A string of formatting codes at the start of each column are stripped off
+-    and used to modify how the rest of the line is printed:
++    and used to modify how the rest of the line is printed.  The samples below
++    assume the FL_SYMBOL_CHAR is '@':
+     
+     \li <tt>'\@.'</tt> Print rest of line, don't look for more '\@' signs
+     \li <tt>'\@\@'</tt> Print rest of line starting with '\@'
+@@ -238,8 +256,8 @@
+   char format_char() const { return format_char_; }
+   /**
+     Sets the current format code prefix character to \p c.
+-    The default prefix is '\@'.  Set the prefix to 0 to disable formatting.
+-    \see format_char() for list of '\@' codes
++    The default prefix is FL_SYMBOL_CHAR.  Set the prefix to 0 to disable formatting.
++    \see format_char() for list of FL_SYMBOL_CHAR codes
+   */
+   void format_char(char c) { format_char_ = c; }
+   /**
+Index: FL/Fl_Browser_.H
+===================================================================
+--- FL/Fl_Browser_.H	(revision 13043)
++++ FL/Fl_Browser_.H	(working copy)
+@@ -34,6 +34,7 @@
+ #define FL_SELECT_BROWSER	1	/**< type() of FL_Select_Browser */
+ #define FL_HOLD_BROWSER		2	/**< type() of Fl_Hold_Browser */
+ #define FL_MULTI_BROWSER	3	/**< type() of Fl_Multi_Browser */
++#define FL_CHECKBOX_BROWSER	4	/**< type() of Fl_Multi_Browser */
+ 
+ #define FL_SORT_ASCENDING	0	/**< sort browser items in ascending alphabetic order. */
+ #define FL_SORT_DESCENDING	1	/**< sort in descending order */
+@@ -81,7 +82,6 @@
+   int hposition_;	// where user wants it panned to
+   int real_hposition_;	// the current horizontal scrolling position
+   int offset_;		// how far down top_ item the real_position is
+-  int max_width;	// widest object seen so far
+   uchar has_scrollbar_;	// which scrollbars are enabled
+   Fl_Font textfont_;
+   Fl_Fontsize textsize_;
+@@ -89,13 +89,26 @@
+   void* top_;		// which item scrolling position is in
+   void* selection_;	// which is selected (except for FL_MULTI_BROWSER)
+   void *redraw1,*redraw2; // minimal update pointers
+-  void* max_width_item;	// which item has max_width_
+   int scrollbar_size_;	// size of scrollbar trough
++  int flags_ex_;  // extended flags for class
+ 
++  static const int FLAG_EX_SHORTCUT=1;           // support shortcuts on browser items
++  static const int FLAG_EX_FOCUS_COLOR_CHANGE=2; // change selection color based on focus
++  static const int FLAG_EX_CHECK_CHANGED=4;      // checkbox item check changed
++  static const int FLAG_EX_FULL_KB_SELECT=8;     // change selection bar on pgup/pgdn/home/end
++  static const int FLAG_EX_SHORTCUT_ALT=0x10;    // support alt keys to shortcuts on browser items
++
+   void update_top();
+ 
+ protected:
++  int max_width;	// widest object seen so far
++  void* max_width_item;	// which item has max_width_
++  void set_scrollbar_visiblity();
+ 
++  inline int check_size(void) const { return textsize()-2; };
++  inline int check_pre_gap(void) const { return 2; };
++  inline int check_post_gap(void) const { return 5; };
++
+   // All of the following must be supplied by the subclass:
+   /**
+     This method must be provided by the subclass 
+@@ -138,6 +151,7 @@
+     \returns The width of the item in pixels.
+   */
+   virtual int item_width(void *item) const = 0;
++  virtual int item_quick_width(void *item) const;
+   virtual int item_quick_height(void *item) const ;
+   /**
+     This method must be provided by the subclass to draw the \p item
+@@ -220,6 +234,9 @@
+   int select(void *item,int val=1,int docallbacks=0);
+   int select_only(void *item,int docallbacks=0);
+   int deselect(int docallbacks=0);
++
++  virtual void checked(void *item,int val);
++
+   /**
+     Gets the vertical scroll position of the list as a pixel position \p pos.
+     The position returned is how many pixels of the list are scrolled off the top edge
+@@ -380,8 +397,77 @@
+   */
+   void scrollbar_left() { scrollbar.align(FL_ALIGN_LEFT); }
+   void sort(int flags=0);
++
++  /**
++    set/clear/check the checked status flag.  The internal handler
++    sets the check_changed() flag.  The application programmer
++    needs to clear_check_changed() if they want to monitor the
++    check_changed() flag.
++  */
++ protected:
++  void set_check_changed() { flags_ex_|=FLAG_EX_CHECK_CHANGED; };
++ public:
++  void clear_check_changed() { flags_ex_&=~FLAG_EX_CHECK_CHANGED; };
++  bool check_changed() const { return (flags_ex_ & FLAG_EX_CHECK_CHANGED)!=0; };
++
++  /**
++    enable/disable supporting shortcuts on browser items
++  */
++  void item_shortcuts(int on) 
++  { 
++    if (on)
++      flags_ex_|=FLAG_EX_SHORTCUT;
++    else
++      flags_ex_&=~FLAG_EX_SHORTCUT;
+ };
++  bool item_shortcuts() const { return (flags_ex_ & FLAG_EX_SHORTCUT)!=0; };
+ 
++  /**
++    change the way shortcuts are handled.  enabling alt shortcuts causes
++    the shortcut to work when the browser doesn't have focus and alt-key
++    combination is used.  if alt shortcuts are not enabled then the short
++    cuts only work within the browser when it has focus.  alt-key allows
++    selection outside the browser group.  Note that this has no affect
++    unless shortcuts are enabled.
++  */
++  void alt_shortcuts(int on) 
++  { 
++    if (on) 
++      flags_ex_|=FLAG_EX_SHORTCUT_ALT; 
++    else
++      flags_ex_&=~FLAG_EX_SHORTCUT_ALT;
++  };
++  bool alt_shortcuts() const { return (flags_ex_ & FLAG_EX_SHORTCUT_ALT)!=0; };
++
++
++  /**
++    enable or disable changing color of the selection bar depending on if the
++    browser control has focus or not
++  */
++  void focus_color_change(int on) 
++  { 
++    if (on) 
++      flags_ex_|=FLAG_EX_FOCUS_COLOR_CHANGE;
++    else
++      flags_ex_&=~FLAG_EX_FOCUS_COLOR_CHANGE;
++  };
++  bool focus_color_change(void) const { return (flags_ex_ & FLAG_EX_FOCUS_COLOR_CHANGE)!=0; };
++
++ /**
++   enable or disable support for changing selection bar when keyboard
++   pgup/pgdn/home/end are used.
++  */
++  void full_kb_select(int on) 
++  { 
++    if (on) 
++      flags_ex_|=FLAG_EX_FULL_KB_SELECT;
++    else
++      flags_ex_&=~FLAG_EX_FULL_KB_SELECT;
++  };
++  bool full_kb_select() const { return (flags_ex_ & FLAG_EX_FULL_KB_SELECT)!=0; };
++
++};
++
+ #endif
+ 
+ //
+Index: FL/Fl_Button.H
+===================================================================
+--- FL/Fl_Button.H	(revision 13043)
++++ FL/Fl_Button.H	(working copy)
+@@ -76,11 +76,14 @@
+ class FL_EXPORT Fl_Button : public Fl_Widget {
+ 
+   int shortcut_;
++  int shortcut2_;
+   char value_;
+   char oldval;
+   uchar down_box_;
++  char flags_ex_;
+ 
+ protected:
++  static const int FLAG_EX_CLICK_ON_ENTER_KEY=1;  // cause normal button press when enter pressed
+ 
+   static Fl_Widget_Tracker *key_release_tracker;
+   static void key_release_timeout(void*);
+@@ -120,6 +123,7 @@
+     \retval int
+    */
+   int shortcut() const {return shortcut_;}
++  int shortcut2() const {return shortcut2_;}
+ 
+   /**
+     Sets the shortcut key to \c s.
+@@ -141,6 +145,7 @@
+     \param[in] s bitwise OR of key and shift flags
+    */
+   void shortcut(int s) {shortcut_ = s;}
++  void shortcut2(int s) {shortcut2_ = s;}
+ 
+   /**
+     Returns the current down box type, which is drawn when value() is non-zero.
+@@ -167,8 +172,19 @@
+ 
+   /// (for backwards compatibility)
+   void down_color(unsigned c) {selection_color(c);}
++
++  /// option for enter to cause button click when a normal button has kb focus
++  void click_on_enter_key(int on) 
++  { 
++    if (on)
++      flags_ex_|=FLAG_EX_CLICK_ON_ENTER_KEY; 
++    else
++      flags_ex_&=~FLAG_EX_CLICK_ON_ENTER_KEY;
+ };
++  bool click_on_enter_key() const { return (flags_ex_ & FLAG_EX_CLICK_ON_ENTER_KEY)!=0; };
+ 
++};
++
+ #endif
+ 
+ //
+Index: FL/Fl_Checkbox_Browser.H
+===================================================================
+--- FL/Fl_Checkbox_Browser.H	(revision 0)
++++ FL/Fl_Checkbox_Browser.H	(working copy)
+@@ -0,0 +1,76 @@
++//
++// "$Id: Fl_Checkbox_Browser.H 8736 2011-05-24 20:00:56Z AlbrechtS $"
++//
++// Checkbox browser header file for the Fast Light Tool Kit (FLTK).
++//
++// Copyright 1998-2011 by Bill Spitzak and others.
++//
++// This library is free software; you can redistribute it and/or
++// modify it under the terms of the GNU Library General Public
++// License as published by the Free Software Foundation; either
++// version 2 of the License, or (at your option) any later version.
++//
++// This library is distributed in the hope that it will be useful,
++// but WITHOUT ANY WARRANTY; without even the implied warranty of
++// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++// Library General Public License for more details.
++//
++// You should have received a copy of the GNU Library General Public
++// License along with this library; if not, write to the Free Software
++// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
++// USA.
++//
++// Please report all bugs and problems on the following page:
++//
++//     http://www.fltk.org/str.php
++//
++
++/* \file
++   Fl_Checkbox_Browser widget . */
++
++#ifndef Fl_Checkbox_Browser_H
++#define Fl_Checkbox_Browser_H
++
++#include "Fl_Browser.H"
++
++/**
++  The Fl_Checkbox_Browser is a subclass of Fl_Browser
++  which lets the user select a single item, or no items by clicking on
++  the empty space as well as check boxes on items.  As long as the mouse
++  button is held down the item pointed to by it is highlighted, and this
++  highlighting remains on when the mouse button is released. Normally the
++  callback is done when the user releases the mouse, but you can change
++  this with when().
++  <P>See Fl_Browser for methods to add and remove lines from the browser.
++*/
++class FL_EXPORT Fl_Checkbox_Browser : public Fl_Browser {
++  int nchecked_;
++
++public:
++  /**
++    Creates a new Fl_Checkbox_Browser widget using the given
++    position, size, and label string. The default boxtype is FL_DOWN_BOX.
++    The constructor specializes Fl_Browser() by setting the type to FL_CHECKBOX_BROWSER.
++    The destructor destroys the widget and frees all memory that has been allocated.
++ */
++  Fl_Checkbox_Browser(int X,int Y,int W,int H,const char *L=0);
++
++  int nchecked() const { return nchecked_; }
++  void checked(void *item,int val);
++
++  /** Gets the current status of item item. */
++  int checked(int i) const;
++  /** Sets the check status of item item to b. */
++  void checked(int i, int b);
++  /**  Sets all the items checked.*/
++  void check_all();
++  /**  Sets all the items unchecked.*/
++  void check_none();
++
++};
++
++#endif
++
++//
++// End of "$Id: Fl_Checkbox_Browser.H 8736 2011-05-24 20:00:56Z AlbrechtS $".
++//
+Index: FL/fl_draw.H
+===================================================================
+--- FL/fl_draw.H	(revision 13043)
++++ FL/fl_draw.H	(working copy)
+@@ -33,7 +33,9 @@
+ 
+ // Label flags...
+ FL_EXPORT extern char fl_draw_shortcut;
++FL_EXPORT extern char fl_force_wrap_breaks; // option set by app and/or widgets
+ 
++
+ /** \addtogroup fl_attributes
+     @{
+ */
+Index: FL/Fl_Help_Dialog.H
+===================================================================
+--- FL/Fl_Help_Dialog.H	(revision 13043)
++++ FL/Fl_Help_Dialog.H	(working copy)
+@@ -82,6 +82,9 @@
+   int w();
+   int x();
+   int y();
++	void set_modal(void) {
++		window_->set_modal();
++	}
+ };
+ #endif
+ 
+Index: FL/Fl_Input_.H
+===================================================================
+--- FL/Fl_Input_.H	(revision 13043)
++++ FL/Fl_Input_.H	(working copy)
+@@ -171,6 +171,15 @@
+ 
+ protected:
+ 
++  /* extended flags for class */
++  static const int FLAG_EX_UNICODE_CHAR_INPUT=1;        // allow input of unicode char
++  static const int FLAG_EX_UNICODE_CHAR_BYTE=2;        // use single byte if available
++  static const int FLAG_EX_UNICODE_CHAR_ACTIVE=0x1000;  // in unicode input char mode
++  int flags_ex_;
++
++  /* work variable for building unicode char value */
++  unsigned int unicodeval_;
++
+   /* Find the start of a word. */
+   int word_start(int i) const;
+ 
+@@ -208,6 +217,25 @@
+   /* Return the number of lines displayed on a single page.  */
+   int linesPerPage();
+ 
++  /* handle unicode input mode */
++  void unicode_input_active(int on)
++  {
++    if (on) {
++      if ((flags_ex_ & FLAG_EX_UNICODE_CHAR_ACTIVE)==0) {
++        flags_ex_ |= FLAG_EX_UNICODE_CHAR_ACTIVE;
++        minimal_update(position()); // cause cursor update
++      }
++    }
++    else if (flags_ex_ & FLAG_EX_UNICODE_CHAR_ACTIVE) {
++      flags_ex_ &= ~FLAG_EX_UNICODE_CHAR_ACTIVE;
++      minimal_update(position()); // cause cursor update
++    }
++  }
++  bool unicode_input_active(void) { return  (flags_ex_ & FLAG_EX_UNICODE_CHAR_ACTIVE)!=0; };
++
++  /* Helper for setting position */
++  int position_adjust(int p, int current_position);
++
+ public:
+ 
+   /* Change the size of the widget. */
+@@ -490,6 +518,37 @@
+   int tab_nav() const {
+     return tab_nav_;
+   }
++
++  /**
++    Enable or Disable support for entering unicode characters
++  */
++  void unicode_input(int on)
++  {
++    if (on)
++      flags_ex_ |= FLAG_EX_UNICODE_CHAR_INPUT;
++    else {
++      flags_ex_ &= ~FLAG_EX_UNICODE_CHAR_INPUT;
++      unicode_input_active(0);
++    }
++  }
++
++  bool unicode_input() { return (flags_ex_ & FLAG_EX_UNICODE_CHAR_INPUT)!=0; };
++
++  /**
++    Enable or Disable option for entering unicode characters.
++
++    Note that if this is enabled on any input field, other input fields can
++    have the value copy/paste to it as a single byte as well.
++  */
++  void unicode_single_byte(int on)
++  {
++    if (on)
++      flags_ex_ |= FLAG_EX_UNICODE_CHAR_BYTE;
++    else
++      flags_ex_ &= ~FLAG_EX_UNICODE_CHAR_BYTE;
++  }
++  bool unicode_single_byte() { return (flags_ex_ & FLAG_EX_UNICODE_CHAR_BYTE)!=0; };
++
+ };
+ 
+ #endif 
+Index: FL/Fl_Input_Choice.H
+===================================================================
+--- FL/Fl_Input_Choice.H	(revision 13043)
++++ FL/Fl_Input_Choice.H	(working copy)
+@@ -24,6 +24,8 @@
+ /* \file
+    Fl_Input_Choice widget . */
+ 
++
++
+ #ifndef Fl_Input_Choice_H
+ #define Fl_Input_Choice_H
+ 
+@@ -54,11 +56,51 @@
+   // Private class to handle slightly 'special' behavior of menu button
+   class InputMenuButton : public Fl_Menu_Button {
+     void draw();
++
++  protected:
++    static const int FLAG_EX_ARROW_SHORTCUT=1;  // allow arrow down to open menu
++    int flags_ex_;
++
+   public:
+     InputMenuButton(int X, int Y, int W, int H, const char *L=0);
++    int handle(int event);
++
++    void arrow_shortcut(int on) 
++    { 
++      if (on) {
++        flags_ex_ |= FLAG_EX_ARROW_SHORTCUT; 
++      }
++      else {
++        flags_ex_ &= ~FLAG_EX_ARROW_SHORTCUT;
++      }
+   };
++    bool arrow_shortcut(void) const { return (flags_ex_ & FLAG_EX_ARROW_SHORTCUT)!=0; };
++  };
+ 
+-  Fl_Input *inp_;
++
++  // This class works like Fl_Input but ignores FL_Up and FL_Down key
++  // presses so they are handled by its parent, the Fl_Input_Choice widget.
++  class FL_EXPORT InputSubclass : public Fl_Input {
++  protected:
++    static const int FLAG_EX_ARROW_SHORTCUT=1;  // allow arrow down to open menu
++    int flags_ex_;
++  public:
++    InputSubclass(int X, int Y, int W, int H);
++    int handle(int event);		// implemented in src/Fl_InputChoice.cxx
++
++    void arrow_shortcut(int on) 
++    { 
++      if (on) {
++        flags_ex_ |= FLAG_EX_ARROW_SHORTCUT; 
++      }
++      else {
++        flags_ex_ &= ~FLAG_EX_ARROW_SHORTCUT;
++      }
++    };
++    bool arrow_shortcut(void) const { return (flags_ex_ & FLAG_EX_ARROW_SHORTCUT)!=0; };
++  };
++
++  InputSubclass *inp_;
+   InputMenuButton *menu_;
+ 
+   // note: this is used by the Fl_Input_Choice ctor.
+@@ -84,6 +126,8 @@
+ 
+   void resize(int X, int Y, int W, int H);
+ 
++  int handle(int event);
++
+   /** Adds an item to the menu.
+     When any item is selected, the Fl_Input_Choice callback() is invoked,
+     which can do something with the selected item.
+@@ -181,8 +225,31 @@
+     This can be used to directly access all of the Fl_Input widget's methods.
+   */
+   Fl_Input *input() { return inp_; }
++  /**
++    sets the maximum input size
++  */
++  void maximum_size(int size)
++  {
++    if (inp_)
++      inp_->maximum_size(size);
+ };
+ 
++  void enable_arrow_shortcut(void) 
++  { 
++    menu_->arrow_shortcut(1); 
++    inp_->arrow_shortcut(1);
++  };
++  
++  void disable_arrow_shortcut(void) 
++  { 
++    inp_->arrow_shortcut(0);
++     menu_->arrow_shortcut(0); 
++  };
++
++  bool arrow_shortcut(void) const { return menu_->arrow_shortcut(); };
++
++};
++
+ #endif // !Fl_Input_Choice_H
+ 
+ //
+Index: FL/Fl_Menu_Item.H
+===================================================================
+--- FL/Fl_Menu_Item.H	(revision 13043)
++++ FL/Fl_Menu_Item.H	(working copy)
+@@ -35,7 +35,8 @@
+   FL_SUBMENU_POINTER = 0x20,	///< Indicates user_data() is a pointer to another menu array
+   FL_SUBMENU = 0x40,		///< This item is a submenu to other items
+   FL_MENU_DIVIDER = 0x80,	///< Creates divider line below this item. Also ends a group of radio buttons.
+-  FL_MENU_HORIZONTAL = 0x100	///< ??? -- reserved
++  FL_MENU_HORIZONTAL = 0x100,	///< ??? -- reserved
++  FL_MENU_NO_SPLIT = 0x200, /// don't create submenus when a slash is found
+ };
+ 
+ extern FL_EXPORT Fl_Shortcut fl_old_shortcut(const char*);
+Index: FL/Fl_Spinner.H
+===================================================================
+--- FL/Fl_Spinner.H	(revision 13043)
++++ FL/Fl_Spinner.H	(working copy)
+@@ -44,7 +44,10 @@
+   double	step_;			// Amount to add/subtract for up/down
+   const char	*format_;		// Format string for input field
+   int		wrap_;			// wrap around at bounds (1/0)
++  int flags_ex_;      // additional option flags
+ 
++  static const int FLAG_EX_BLANK_ALLOWED=1;   // allow blank (zero) (outside of range)
++
+ private:
+ 
+   static void sb_cb(Fl_Widget *w, Fl_Spinner *sb); // internal callback
+@@ -194,7 +197,19 @@
+     Returns the selection color of the spinner widget's input field.
+   */
+   Fl_Color selection_color() const { return input_.selection_color(); }
++
++  /**
++   enable or disable support for making spinner values optional
++  */
++  void blank_allowed(int on) 
++  { 
++    if (on) 
++      flags_ex_|=FLAG_EX_BLANK_ALLOWED; 
++    else
++      flags_ex_&=~FLAG_EX_BLANK_ALLOWED;
+ };
++  bool blank_allowed() { return (flags_ex_ & FLAG_EX_BLANK_ALLOWED)!=0; };
++};
+ 
+ #endif // !Fl_Spinner_H
+ 
+Index: FL/fl_utf8.h
+===================================================================
+--- FL/fl_utf8.h	(revision 13043)
++++ FL/fl_utf8.h	(working copy)
+@@ -53,6 +53,18 @@
+  */
+ FL_EXPORT int fl_utf8bytes(unsigned ucs);
+ 
++/* returns the byte length of the UTF-8 char sequence (returns -1 if not valid) */
++FL_EXPORT int fl_utf8len_real(const char *str, int chars_avail);
++
++FL_EXPORT const char *fl_utf8_find_leading_char(const char *u8c, const char *u8s_start, int chars_avail);
++
++/* determine if char is potential continuation character */
++#define fl_utf8_is_continuation_char(ch) ((((unsigned char)(ch)) & 0xC0)==0x80)
++
++/* determine if looks like utf8 leading sequence character */
++#define fl_utf8_is_leading_char(ch) ((((unsigned char)(ch)) & 0xC0)==0xC0)
++
++
+ /* OD: returns the byte length of the first UTF-8 char sequence (returns -1 if not valid) */
+ FL_EXPORT int fl_utf8len(char c);
+ 
+Index: fltk-config.in
+===================================================================
+--- fltk-config.in	(revision 13043)
++++ fltk-config.in	(working copy)
+@@ -44,8 +44,8 @@
+ 
+ # flags for C++ compiler:
+ ARCHFLAGS="@ARCHFLAGS@"
+-CFLAGS="@CFLAGS@ @LARGEFILE@ @PTHREAD_FLAGS@"
+-CXXFLAGS="@CXXFLAGS@ @LARGEFILE@ @PTHREAD_FLAGS@"
++CFLAGS="@CFLAGS@ @NEW_PREFIX_SYMBOL_FLAG@ @LARGEFILE@ @PTHREAD_FLAGS@"
++CXXFLAGS="@CXXFLAGS@ @NEW_PREFIX_SYMBOL_FLAG@ @LARGEFILE@ @PTHREAD_FLAGS@"
+ LDFLAGS="@LDFLAGS@"
+ LDLIBS="@LIBS@"
+ OPTIM="@OPTIM@"
+Index: fluid/alignment_panel.cxx
+===================================================================
+--- fluid/alignment_panel.cxx	(revision 13043)
++++ fluid/alignment_panel.cxx	(working copy)
+@@ -154,6 +154,7 @@
+  {"Plastic", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 14, 0},
+  {"GTK+", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 14, 0},
+  {"Gleam", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 14, 0},
++ {"Smooth", 0,  0, 0, 0, (uchar)FL_NORMAL_LABEL, 0, 14, 0},
+  {0,0,0,0,0,0,0,0,0}
+ };
+ 
+Index: fluid/Fl_Type.cxx
+===================================================================
+--- fluid/Fl_Type.cxx	(revision 13043)
++++ fluid/Fl_Type.cxx	(working copy)
+@@ -267,9 +267,9 @@
+ 
+ void *Widget_Browser::item_first() const {return Fl_Type::first;}
+ 
+-void *Widget_Browser::item_next(void *l) const {return ((Fl_Type*)l)->next;}
++void *Widget_Browser::item_next(void *l) const {return l ? ((Fl_Type*)l)->next : item_first();}
+ 
+-void *Widget_Browser::item_prev(void *l) const {return ((Fl_Type*)l)->prev;}
++void *Widget_Browser::item_prev(void *l) const {return l ? ((Fl_Type*)l)->prev : item_last();}
+ 
+ int Widget_Browser::item_selected(void *l) const {return ((Fl_Type*)l)->new_selected;}
+ 
+Index: fluid/fluid.cxx
+===================================================================
+--- fluid/fluid.cxx	(revision 13043)
++++ fluid/fluid.cxx	(working copy)
+@@ -1156,6 +1156,9 @@
+     case 4 : // Gleam
+       Fl::scheme("gleam");
+       break;
++    case 5: // Smooth
++      Fl::scheme("smooth");
++      break;
+   }
+ 
+   fluid_prefs.set("scheme", scheme_choice->value());
+Index: fluid/function_panel.cxx
+===================================================================
+--- fluid/function_panel.cxx	(revision 13043)
++++ fluid/function_panel.cxx	(working copy)
+@@ -509,7 +509,7 @@
+       data_filename->align(Fl_Align(133));
+       data_filename->when(FL_WHEN_NEVER);
+     } // Fl_Input* data_filename
+-    { data_filebrowser = new Fl_Button(290, 90, 40, 20, "@fileopen");
++    { data_filebrowser = new Fl_Button(290, 90, 40, 20, FL_SYM_FILEOPEN_TX);
+       data_filebrowser->labelcolor((Fl_Color)134);
+     } // Fl_Button* data_filebrowser
+     { data_comment_input = new Fl_Text_Editor(10, 130, 320, 65, "Comment:");
+Index: fluid/widget_panel.cxx
+===================================================================
+--- fluid/widget_panel.cxx	(revision 13043)
++++ fluid/widget_panel.cxx	(working copy)
+@@ -195,7 +195,7 @@
+             o->labelsize(11);
+             o->callback((Fl_Callback*)align_cb, (void*)((fl_intptr_t)FL_ALIGN_WRAP));
+           } // Fl_Button* o
+-          { Fl_Button* o = new Fl_Button(278, 115, 20, 20, "@-1<-");
++          { Fl_Button* o = new Fl_Button(278, 115, 20, 20, FL_FLUID_LF_ALIGN_TX);
+             o->tooltip("Left-align the label.");
+             o->type(1);
+             o->selection_color(FL_INACTIVE_COLOR);
+@@ -204,7 +204,7 @@
+             o->callback((Fl_Callback*)align_cb, (void*)((fl_intptr_t)FL_ALIGN_LEFT));
+             o->hide();
+           } // Fl_Button* o
+-          { Fl_Button* o = new Fl_Button(303, 115, 20, 20, "@-1->");
++          { Fl_Button* o = new Fl_Button(303, 115, 20, 20, FL_FLUID_RT_ALIGN_TX);
+             o->tooltip("Right-align the label.");
+             o->type(1);
+             o->selection_color(FL_INACTIVE_COLOR);
+@@ -213,7 +213,7 @@
+             o->callback((Fl_Callback*)align_cb, (void*)((fl_intptr_t)FL_ALIGN_RIGHT));
+             o->hide();
+           } // Fl_Button* o
+-          { Fl_Button* o = new Fl_Button(328, 115, 20, 20, "@-18");
++          { Fl_Button* o = new Fl_Button(328, 115, 20, 20, FL_FLUID_TOP_ALIGN_TX);
+             o->tooltip("Top-align the label.");
+             o->type(1);
+             o->selection_color(FL_INACTIVE_COLOR);
+@@ -222,7 +222,7 @@
+             o->callback((Fl_Callback*)align_cb, (void*)((fl_intptr_t)FL_ALIGN_TOP));
+             o->hide();
+           } // Fl_Button* o
+-          { Fl_Button* o = new Fl_Button(353, 115, 20, 20, "@-12");
++          { Fl_Button* o = new Fl_Button(353, 115, 20, 20, FL_FLUID_BOT_ALIGN_TX);
+             o->tooltip("Bottom-align the label.");
+             o->type(1);
+             o->selection_color(FL_INACTIVE_COLOR);
+@@ -245,7 +245,7 @@
+             o->callback((Fl_Callback*)align_position_cb);
+             o->menu(menu_1);
+           } // Fl_Choice* o
+-          { Fl_Button* o = new Fl_Button(378, 115, 20, 20, "@-3square");
++          { Fl_Button* o = new Fl_Button(378, 115, 20, 20, FL_FLUID_INSIDE_ALIGN_TX);
+             o->tooltip("Show the label inside the widget.");
+             o->type(1);
+             o->selection_color(FL_INACTIVE_COLOR);
+Index: makeinclude.in
+===================================================================
+--- makeinclude.in	(revision 13043)
++++ makeinclude.in	(working copy)
+@@ -65,8 +65,8 @@
+ # flags for C++ compiler:
+ ARCHFLAGS	= @ARCHFLAGS@
+ OPTIM		= @OPTIM@
+-CFLAGS		= $(OPTIM) @LARGEFILE@ @PTHREAD_FLAGS@ @CPPFLAGS@ @CFLAGS@
+-CXXFLAGS	= $(OPTIM) @LARGEFILE@ @PTHREAD_FLAGS@ @CPPFLAGS@ @CXXFLAGS@ $(FLTKFLAGS)
++CFLAGS		= $(OPTIM) @NEW_PREFIX_SYMBOL_FLAG@ @LARGEFILE@ @PTHREAD_FLAGS@ @CPPFLAGS@ @CFLAGS@
++CXXFLAGS	= $(OPTIM) @NEW_PREFIX_SYMBOL_FLAG@ @LARGEFILE@ @PTHREAD_FLAGS@ @CPPFLAGS@ @CXXFLAGS@ $(FLTKFLAGS)
+ 
+ # program to make the archive:
+ LIBNAME		= @LIBNAME@
+Index: src/Fl.cxx
+===================================================================
+--- src/Fl.cxx	(revision 13043)
++++ src/Fl.cxx	(working copy)
+@@ -164,7 +164,15 @@
+ char const * const Fl::clipboard_plain_text = "text/plain";
+ char const * const Fl::clipboard_image = "image";
+ 
++// define symbol character for third party library builders who want
++// to provide a single library and support builds using old @ symbol
++// prefix or new 0x0F symbol prefix.
++const char Fl::symbol_prefix_char=FL_SYMBOL_CHAR;
+ 
++// define new way to handle shortcuts consistantly for users
++// using keyboard.
++bool Fl::new_shortcut_logic=false;
++
+ //
+ // Drivers
+ //
+@@ -1355,7 +1363,24 @@
+ 
+   case FL_SHORTCUT:
+     if (grab()) {wi = grab(); break;} // send it to grab window
+-
++    if (new_shortcut_logic) {
++      Fl_Widget *wo;
++      // handle normal character key presses within object with keyboard focus
++      if (Fl::event_state(FL_ALT|FL_CTRL|FL_META|FL_COMMAND)==0) {
++        // get object with keyboard focus
++        wo=Fl::focus();
++        if (wo && wo->window()==window) {
++          // handle object with keyboard focus first
++          if (send_event(FL_SHORTCUT, wo, wo->window())) return 1;
++        }
++      }
++      // handle other shortcuts at the active window level
++      Fl_Window *tw=first_window();
++      if (tw) {
++        if (send_event(FL_SHORTCUT, tw, tw)) return 1;
++      }
++    }
++    else {
+     // Try it as shortcut, sending to mouse widget and all parents:
+     wi = find_active(belowmouse()); // STR #3216
+     if (!wi) {
+@@ -1364,6 +1389,7 @@
+     } else if (wi->window() != first_window()) {
+       if (send_event(FL_SHORTCUT, first_window(), first_window())) return 1;
+     }
++    }
+ 
+     for (; wi; wi = wi->parent()) {
+       if (send_event(FL_SHORTCUT, wi, wi->window())) return 1;
+Index: src/fl_ask.cxx
+===================================================================
+--- src/fl_ask.cxx	(revision 13043)
++++ src/fl_ask.cxx	(working copy)
+@@ -52,6 +52,7 @@
+ static int ret_val;
+ static const char *iconlabel = "?";
+ static const char *message_title_default;
++static char choice_icon[2]={ '?', 0 };
+ Fl_Font fl_message_font_ = FL_HELVETICA;
+ Fl_Fontsize fl_message_size_ = -1;
+ static int enableHotspot = 1;
+@@ -361,6 +362,14 @@
+   return r;
+ }
+ 
++/** choose letter for fl_choice icon
++*/
++
++void fl_choice_icon(char iconchar)
++{
++  choice_icon[0]=iconchar ? iconchar : '?';
++}
++
+ /** Shows a dialog displaying the printf style \p fmt message,
+     this dialog features up to 3 customizable choice buttons
+     which are specified in order of *right-to-left* in the dialog, e.g.
+@@ -424,6 +433,8 @@
+ 
+   if (avoidRecursion) return 0;
+ 
++  iconlabel=choice_icon;
++
+   va_list ap;
+ 
+   // fl_beep(FL_BEEP_QUESTION);
+@@ -431,6 +442,9 @@
+   va_start(ap, b2);
+   int r = innards(fmt, ap, b0, b1, b2);
+   va_end(ap);
++
++  iconlabel="?";
++
+   return r;
+ }
+ /** Gets the Fl_Box icon container of the current default dialog used in
+@@ -441,7 +455,7 @@
+ Fl_Widget *fl_message_icon() {makeform(); return icon;}
+ 
+ static const char* input_innards(const char* fmt, va_list ap,
+-				 const char* defstr, uchar type) {
++				 const char* defstr, uchar type, int maxinput=0) {
+   makeform();
+   message_form->size(410,103);
+   message->position(60,10);
+@@ -449,6 +463,9 @@
+   input->show();
+   input->value(defstr);
+   input->take_focus();
++  if (maxinput) {
++    input->maximum_size(maxinput);
++  }
+ 
+   int r = innards(fmt, ap, fl_cancel, fl_ok, 0);
+   input->hide();
+@@ -479,6 +496,22 @@
+   return r;
+ }
+ 
++/** version of fl_input that limits the number of characters allowed in input field **/
++const char* fl_input_n(const char *fmt, int maxinput, const char *defstr, ...) {
++
++  if (avoidRecursion) return 0;
++
++  fl_beep(FL_BEEP_QUESTION);
++
++  va_list ap;
++  va_start(ap, defstr);
++  const char* r = input_innards(fmt, ap, defstr, FL_NORMAL_INPUT, maxinput);
++  va_end(ap);
++  return r;
++}
++
++
++
+ /** Shows an input dialog displaying the \p fmt message.
+ 
+     Like fl_input() except the input text is not shown,
+@@ -505,6 +538,20 @@
+   return r;
+ }
+ 
++/** version of fl_password that limits the number of characters allowed in input field **/
++const char *fl_password_n(const char *fmt, int maxinput, const char *defstr, ...) {
++
++  if (avoidRecursion) return 0;
++
++  fl_beep(FL_BEEP_PASSWORD);
++
++  va_list ap;
++  va_start(ap, defstr);
++  const char* r = input_innards(fmt, ap, defstr, FL_SECRET_INPUT, maxinput);
++  va_end(ap);
++  return r;
++}
++
+ /** Sets whether or not to move the common message box used in
+     many common dialogs like fl_message(), fl_alert(),
+     fl_ask(), fl_choice(), fl_input(), fl_password() to follow
+Index: src/Fl_Browser.cxx
+===================================================================
+--- src/Fl_Browser.cxx	(revision 13043)
++++ src/Fl_Browser.cxx	(working copy)
+@@ -26,6 +26,7 @@
+ #include <FL/Fl_Hold_Browser.H>
+ #include <FL/Fl_Multi_Browser.H>
+ #include <FL/Fl_Select_Browser.H>
++#include <FL/Fl_Checkbox_Browser.H>
+ 
+ 
+ // I modified this from the original Forms data to use a linked list
+@@ -37,24 +38,6 @@
+ // Also added the ability to "hide" a line. This sets its height to
+ // zero, so the Fl_Browser_ cannot pick it.
+ 
+-#define SELECTED 1
+-#define NOTDISPLAYED 2
+-
+-// WARNING:
+-//       Fl_File_Chooser.cxx also has a definition of this structure (FL_BLINE).
+-//       Changes to FL_BLINE *must* be reflected in Fl_File_Chooser.cxx as well.
+-//       This hack in Fl_File_Chooser should be solved.
+-//
+-struct FL_BLINE {	// data is in a linked list of these
+-  FL_BLINE* prev;
+-  FL_BLINE* next;
+-  void* data;
+-  Fl_Image* icon;
+-  short length;		// sizeof(txt)-1, may be longer than string
+-  char flags;		// selected, displayed
+-  char txt[1];		// start of allocated array
+-};
+-
+ /**
+   Returns the very first item in the list.
+   Example of use:
+@@ -75,7 +58,7 @@
+   \returns The next item after \p item, or NULL if there are none after this one.
+   \see item_first(), item_last(), item_next(), item_prev()
+ */
+-void* Fl_Browser::item_next(void* item) const {return ((FL_BLINE*)item)->next;}
++void* Fl_Browser::item_next(void* item) const {return  item ? ((FL_BLINE*)item)->next : item_first();}
+ 
+ /**
+   Returns the previous item before \p item.
+@@ -83,7 +66,7 @@
+   \returns The previous item before \p item, or NULL if there are none before this one.
+   \see item_first(), item_last(), item_next(), item_prev()
+ */
+-void* Fl_Browser::item_prev(void* item) const {return ((FL_BLINE*)item)->prev;}
++void* Fl_Browser::item_prev(void* item) const {return item ? ((FL_BLINE*)item)->prev : item_last();}
+ 
+ /**
+   Returns the very last item in the list.
+@@ -144,7 +127,7 @@
+   \retval NULL if line is out of range.
+   \see item_at(), find_line(), lineno()
+ */
+-FL_BLINE* Fl_Browser::find_line(int line) const {
++Fl_Browser::FL_BLINE* Fl_Browser::find_line(int line) const {
+   int n; FL_BLINE* l;
+   if (line == cacheline) return cache;
+   if (cacheline && line > (cacheline/2) && line < ((cacheline+lines)/2)) {
+@@ -203,7 +186,7 @@
+   \returns Pointer to browser item that was removed (and is no longer valid).
+   \see add(), insert(), remove(), swap(int,int), clear()
+ */
+-FL_BLINE* Fl_Browser::_remove(int line) {
++Fl_Browser::FL_BLINE* Fl_Browser::_remove(int line) {
+   FL_BLINE* ttt = find_line(line);
+   deleting(ttt);
+ 
+@@ -292,6 +275,7 @@
+   strcpy(t->txt, newtext);
+   t->data = d;
+   t->icon = 0;
++  t->width=item_width(t);
+   insert(line, t);
+ }
+ 
+@@ -338,6 +322,7 @@
+     t = n;
+   }
+   strcpy(t->txt, newtext);
++  t->width=item_width(t);
+   redraw_line(t);
+ }
+ 
+@@ -391,7 +376,7 @@
+ 	  case 'C': while (isdigit(*str & 255)) str++; break; // skip a color number
+ 	  case 'F': font = (Fl_Font)strtol(str,&str,10); break;
+ 	  case 'S': tsize = strtol(str,&str,10); break;
+-	  case 0: case '@': str--;
++  case 0: case FL_SYMBOL_CHAR: str--;
+ 	  case '.': goto END_FORMAT;
+ 	  }
+ 	}
+@@ -414,7 +399,16 @@
+   return hmax; // previous version returned hmax+2!
+ }
+ 
++
+ /**
++  Returns width of item in pixels.
++  */
++
++int Fl_Browser::item_quick_width(void *item) const {
++  return ((FL_BLINE*)item)->width;
++}
++
++/**
+   Returns width of \p item in pixels.
+   This takes into account embedded \@ codes within the text() label.
+   \param[in] item The item whose width is returned.
+@@ -458,7 +452,7 @@
+       case '.':
+ 	done = 1;
+ 	break;
+-      case '@':
++    case FL_SYMBOL_CHAR:
+ 	str--;
+ 	done = 1;
+       }
+@@ -470,7 +464,15 @@
+       str ++;
+   }
+ 
+-  if (ww==0 && l->icon) ww = l->icon->w();
++  // the icon and checkbox are part of column 1 otherwise we need
++  // to include their width when no columns exist.
++  if (ww==0) {
++    if (l->icon) ww = l->icon->w();
++    if (type()==FL_CHECKBOX_BROWSER) {
++      // -6 because the +6 seems to make things scroll too far
++      ww+=check_size()+check_pre_gap()+check_post_gap()-6;
++    }
++  }
+ 
+   fl_font(font, tsize);
+   return ww + int(fl_width(str)) + 6;
+@@ -519,9 +521,58 @@
+       e = strchr(str, column_char());
+       if (e) {*e = 0; w1 = *i++;}
+     }
+-    // Icon drawing code
++
++    int tsize = textsize();
++    Fl_Color lcol = textcolor();
++
++    // Icon/Checkbox drawing code
+     if (first) {
+       first = false;
++      // Checkbox - ideally we should have the icon and checkbox
++      // dedicated to its own column (or not part of any column)
++      // so that changing column widths couldn't prevent those
++      // from showing.  In fact it may be better if each
++      // class had a virtual item_draw that took care of only
++      // what it needs, then adjusts X,W and passes to the base
++      // class.  however, i'm just adding checkboxes to the
++      // existing flow.
++      if (type()==FL_CHECKBOX_BROWSER) {
++        // ignore if won't fit
++        if (W<check_size()+check_pre_gap()) {
++          break;
++        }
++        // setup the colors for the checkbox (using same logical from below
++        // where text is drawn).
++        if (l->flags & SELECTED) {
++          lcol = fl_contrast(lcol, selection_color());
++        }
++        if (!active_r()) lcol = fl_inactive(lcol);
++        fl_color(lcol);
++        // using the checkbox drawing logic from Fl_Check_Browser
++        int cy = Y + ((textsize() + 1 - check_size()) / 2);
++        fl_loop(X+check_pre_gap(), cy, X+check_pre_gap(), cy + check_size(),
++                X + check_pre_gap()+check_size(), cy + check_size(), X + check_pre_gap()+check_size(), cy);
++        if (l->flags & CHECKED) {
++          int tx = X + check_pre_gap()+3;
++          int tw = check_size() - 4;
++          int d1 = tw/3;
++          int d2 = tw-d1;
++          int ty = cy + (check_size()+d2)/2-d1-2;
++          for (int n = 0; n < 3; n++, ty++) {
++            fl_line(tx, ty, tx+d1, ty+d1);
++            fl_line(tx+d1, ty+d1, tx+tw-1, ty+d1-d2+1);
++          }
++        }
++        // adjust available area for next item to be drawn on line
++        X+=check_pre_gap() + check_size() + check_post_gap();
++        W-=check_pre_gap()+check_size() + check_post_gap();
++        w1-=check_pre_gap()+check_size() + check_post_gap();
++        // shouldn't the width of the icon or text be checked and aborted or
++        // clipped if won't fit the column width since X, W and w1 is ajusted
++        // again with the icon then finally used with fldraw w1-6 which could
++        // end up negative (is that a problem for fl_draw?)
++      }
++      // Icon
+       if (l->icon) {
+ 	l->icon->draw(X+2,Y+1);	// leave 2px left, 1px above
+ 	int iconw = l->icon->w()+2;
+@@ -528,9 +579,9 @@
+ 	X += iconw; W -= iconw; w1 -= iconw;
+       }
+     }
+-    int tsize = textsize();
++
++    lcol = textcolor();
+     Fl_Font font = textfont();
+-    Fl_Color lcol = textcolor();
+     Fl_Align talign = FL_ALIGN_LEFT;
+     // check for all the @-lines recognized by XForms:
+     //#if defined(__GNUC__)
+@@ -578,7 +629,7 @@
+ 	  break;
+ 	case '.':
+ 	  goto BREAK;
+-	case '@':
++      case FL_SYMBOL_CHAR:
+ 	  str--; goto BREAK;
+ 	}
+       }
+@@ -585,11 +636,18 @@
+     }
+   BREAK:
+     fl_font(font, tsize);
+-    if (l->flags & SELECTED)
++    if (l->flags & SELECTED) {
++	  if (type()!=FL_SELECT_BROWSER || Fl::focus()==this) {
+       lcol = fl_contrast(lcol, selection_color());
++	  }
++	 }
+     if (!active_r()) lcol = fl_inactive(lcol);
+     fl_color(lcol);
++    if (item_shortcuts()) {
++      fl_draw_shortcut=1;
++    }
+     fl_draw(str, X+3, Y, w1-6, H, e ? Fl_Align(talign|FL_ALIGN_CLIP) : talign, 0, 0);
++    fl_draw_shortcut=0;
+     if (!e) break; // no more fields...
+     *e = column_char(); // put the separator back
+     X += w1;
+@@ -611,7 +669,7 @@
+   lines = 0;
+   full_height_ = 0;
+   cacheline = 0;
+-  format_char_ = '@';
++  format_char_ = FL_SYMBOL_CHAR;
+   column_char_ = '\t';
+   first = last = cache = 0;
+ }
+@@ -779,6 +837,10 @@
+   if (t->flags & NOTDISPLAYED) {
+     t->flags &= ~NOTDISPLAYED;
+     full_height_ += item_height(t);
++    if (t->width > max_width) {
++      max_width=t->width;
++      max_width_item=t;
++    }
+     if (Fl_Browser_::displayed(t)) redraw();
+   }
+ }
+@@ -796,6 +858,10 @@
+   FL_BLINE* t = find_line(line);
+   if (!(t->flags & NOTDISPLAYED)) {
+     full_height_ -= item_height(t);
++    if (max_width_item==t) {
++      max_width=0;
++      max_width_item=0;
++    }
+     t->flags |= NOTDISPLAYED;
+     if (Fl_Browser_::displayed(t)) redraw();
+   }
+@@ -956,7 +1022,6 @@
+   type(FL_MULTI_BROWSER);
+ }
+ 
+-
+ Fl_Select_Browser::Fl_Select_Browser(int X,int Y,int W,int H,const char *L)
+ : Fl_Browser(X,Y,W,H,L) 
+ {
+Index: src/Fl_Browser_.cxx
+===================================================================
+--- src/Fl_Browser_.cxx	(revision 13043)
++++ src/Fl_Browser_.cxx	(working copy)
+@@ -248,6 +248,12 @@
+   update_top();
+   if (item == item_first()) {position(0); return;}
+ 
++  // make sure scrollbar set properly  so scrolling/centering works
++  // proper, espically for the last line item which could be hidden
++  // by horizontal scrollbar if it's visible (which it would be
++  // prior to the first draw() call).
++  set_scrollbar_visiblity();
++
+   int X, Y, W, H, Yp; bbox(X, Y, W, H);
+   void* l = top_;
+   Y = Yp = -offset_;
+@@ -322,74 +328,123 @@
+ #endif
+ }
+ 
+-// redraw, has side effect of updating top and setting scrollbar:
+-/**
+-  Draws the list within the normal widget bounding box.
++/***
++ determine if the scrollbars should be visible or not
++ and make adjustment as needed
+ */
+-void Fl_Browser_::draw() {
+-  int drawsquare = 0;
+-  update_top();
++void Fl_Browser_::set_scrollbar_visiblity()
++{
+   int full_width_ = full_width();
+   int full_height_ = full_height();
++
++  // note that the width may be reset to zero once the widest
++  // added item is removed.  at that point we want to scan
++  // all lines for the widest.
++  if (full_width_==0) {
++    max_width=0;
++    for (void* p = item_first(); p; p = item_next(p)) {
++      int ww=item_quick_width(p);
++      if (ww > max_width) {
++        max_width = ww;
++        max_width_item = p;
++      }
++    }
++    full_width_=max_width;
++  }
++
++  // this is here only to catch some new class from allowing
++  // full_height_ to go to zero when it shouldn't be
++  if (full_height_==0) {
++    full_height_=Fl_Browser_::full_height();
++  }
++
++  // save scrollbar visible status before adjustment to minimize
++  // drawing via damage.
++  unsigned int sb_vis=scrollbar.visible();
++  unsigned int hsb_vis=hscrollbar.visible();
++
++  // turn off horizontal so vertical scrollbar can determine if it
++  // needs to turn on without the horizontal scrollbar.
++  hscrollbar.clear_visible();
++
++  // now get area available
+   int X, Y, W, H; bbox(X, Y, W, H);
+-  int dont_repeat = 0;
+-J1:
+-  if (damage() & FL_DAMAGE_ALL) { // redraw the box if full redraw
+-    Fl_Boxtype b = box() ? box() : FL_DOWN_BOX;
+-    draw_box(b, x(), y(), w(), h(), color());
+-    drawsquare = 1;
+-  }
+-  // see if scrollbar needs to be switched on/off:
++
++  // setup vertical scrollbar
+   if ((has_scrollbar_ & VERTICAL) && (
+ 	(has_scrollbar_ & ALWAYS_ON) || position_ || full_height_ > H)) {
+     if (!scrollbar.visible()) {
+       scrollbar.set_visible();
+-      drawsquare = 1;
+       bbox(X, Y, W, H);
+     }
+-  } else {
+-    top_ = item_first(); real_position_ = offset_ = 0;
++  }
++  else {
+     if (scrollbar.visible()) {
+       scrollbar.clear_visible();
+-      clear_damage((uchar)(damage()|FL_DAMAGE_SCROLL));
++      bbox(X, Y, W, H);
+     }
+   }
+ 
++  // setup horizontal scrollbar
+   if ((has_scrollbar_ & HORIZONTAL) && (
+ 	(has_scrollbar_ & ALWAYS_ON) || hposition_ || full_width_ > W)) {
+-    if (!hscrollbar.visible()) {
++    // horizontal scrollbar needed
+       hscrollbar.set_visible();
+-      drawsquare = 1;
+       bbox(X, Y, W, H);
++    // check if vertical scrollbar now needed
++    if ((has_scrollbar_ & VERTICAL) && !scrollbar.visible() && full_height_ > H) {
++      scrollbar.set_visible();
++      bbox(X, Y, W, H);
+     }
+-  } else {
+-    real_hposition_ = 0;
+-    if (hscrollbar.visible()) {
+-      hscrollbar.clear_visible();
+-      clear_damage((uchar)(damage()|FL_DAMAGE_SCROLL));
+     }
++  else {
++    // already cleared before setup of vertical scrollbar above
+   }
+ 
+-  // Check the vertical scrollbar again, just in case it needs to be drawn
+-  // because the horizontal one is drawn.  There should be a cleaner way
+-  // to do this besides copying the same code...
+-  if ((has_scrollbar_ & VERTICAL) && (
+-	(has_scrollbar_ & ALWAYS_ON) || position_ || full_height_ > H)) {
+-    if (!scrollbar.visible()) {
+-      scrollbar.set_visible();
+-      drawsquare = 1;
+-      bbox(X, Y, W, H);
++  // determine how scrollbars may have changed
++  if (sb_vis!=scrollbar.visible()) {
++    // check if it used to be enabled, if so, reset to ensure all
++    // items start at top.
++    if (sb_vis) {
++      top_ = item_first();
++      real_position_ = offset_ = 0;
+     }
+-  } else {
+-    top_ = item_first(); real_position_ = offset_ = 0;
+-    if (scrollbar.visible()) {
+-      scrollbar.clear_visible();
++    // cause redraw of widget
++    damage(FL_DAMAGE_ALL);
++  }
++
++  if (hsb_vis!=hscrollbar.visible()) {
++    // check if it used to be enabled, if so, clear any damaged
++    // scroll request and ensure at column 0.
++    if (hsb_vis) {
++      real_hposition_ = 0;
+       clear_damage((uchar)(damage()|FL_DAMAGE_SCROLL));
+     }
++    // cause redraw of widget
++    damage(FL_DAMAGE_ALL);
+   }
++}
+ 
+-  bbox(X, Y, W, H);
+ 
++// redraw, has side effect of updating top and setting scrollbar:
++/**
++  Draws the list within the normal widget bounding box.
++*/
++void Fl_Browser_::draw() {
++  int drawsquare = 0;
++  update_top();
++
++  // enable/disable scrollbar based on items
++  set_scrollbar_visiblity();
++
++  int X, Y, W, H; bbox(X, Y, W, H);
++
++  if (damage() & FL_DAMAGE_ALL) { // redraw the box if full redraw
++    Fl_Boxtype b = box() ? box() : FL_DOWN_BOX;
++    draw_box(b, x(), y(), w(), h(), color());
++    drawsquare = 1;
++  }
++
+   fl_push_clip(X, Y, W, H);
+   // for each line, draw it if full redraw or scrolled.  Erase background
+   // if not a full redraw or if it is selected:
+@@ -399,8 +454,8 @@
+     int hh = item_height(l);
+     if (hh <= 0) continue;
+     if ((damage()&(FL_DAMAGE_SCROLL|FL_DAMAGE_ALL)) || l == redraw1 || l == redraw2) {
+-      if (item_selected(l)) {
+-	fl_color(active_r() ? selection_color() : fl_inactive(selection_color()));
++      if ((type()!=FL_SELECT_BROWSER || Fl::focus()==this) && item_selected(l)) {
++		fl_color((active_r() && (!focus_color_change() || Fl::focus()==this)) ? selection_color() : fl_inactive(selection_color()));
+ 	fl_rectf(X, yy+Y, W, hh);
+       } else if (!(damage()&FL_DAMAGE_ALL)) {
+ 	fl_push_clip(X, yy+Y, W, hh);
+@@ -412,8 +467,6 @@
+ 	draw_box(FL_BORDER_FRAME, X, yy+Y, W, hh, color());
+ 	draw_focus(FL_NO_BOX, X, yy+Y, W+1, hh+1);
+       }
+-      int ww = item_width(l);
+-      if (ww > max_width) {max_width = ww; max_width_item = l;}
+     }
+     yy += hh;
+   }
+@@ -427,43 +480,20 @@
+ 
+   fl_push_clip(x(),y(),w(),h());		// STR# 2886
+   redraw1 = redraw2 = 0;
+-  if (!dont_repeat) {
+-    dont_repeat = 1;
+-    // see if changes to full_height caused by calls to slow_height
+-    // caused scrollbar state to change, in which case we have to redraw:
+-    full_height_ = full_height();
+-    full_width_ = full_width();
+-    if ((has_scrollbar_ & VERTICAL) &&
+-	((has_scrollbar_ & ALWAYS_ON) || position_ || full_height_>H)) {
+-      if (!scrollbar.visible()) { damage(FL_DAMAGE_ALL); fl_pop_clip(); goto J1; }
+-    } else {
+-      if (scrollbar.visible()) { damage(FL_DAMAGE_ALL); fl_pop_clip(); goto J1; }
+-    }
+-    if ((has_scrollbar_ & HORIZONTAL) &&
+-	((has_scrollbar_ & ALWAYS_ON) || hposition_ || full_width_>W)) {
+-      if (!hscrollbar.visible()) { damage(FL_DAMAGE_ALL); fl_pop_clip(); goto J1; }
+-    } else {
+-      if (hscrollbar.visible()) { damage(FL_DAMAGE_ALL); fl_pop_clip(); goto J1; }
+-    }
+-  }
+ 
+   // update the scrollbars and redraw them:
+   int scrollsize = scrollbar_size_ ? scrollbar_size_ : Fl::scrollbar_size();
+   int dy = top_ ? item_quick_height(top_) : 0; if (dy < 10) dy = 10;
+   if (scrollbar.visible()) {
+-    scrollbar.damage_resize(
+-	scrollbar.align()&FL_ALIGN_LEFT ? X-scrollsize : X+W,
+-	Y, scrollsize, H);
+-    scrollbar.value(position_, H, 0, full_height_);
++    scrollbar.damage_resize(scrollbar.align()&FL_ALIGN_LEFT ? X-scrollsize : X+W, Y, scrollsize, H);
++    scrollbar.value(position_, H, 0, full_height());
+     scrollbar.linesize(dy);
+     if (drawsquare) draw_child(scrollbar);
+     else update_child(scrollbar);
+   }
+   if (hscrollbar.visible()) {
+-    hscrollbar.damage_resize(
+-	X, scrollbar.align()&FL_ALIGN_TOP ? Y-scrollsize : Y+H,
+-	W, scrollsize);
+-    hscrollbar.value(hposition_, W, 0, full_width_);
++    hscrollbar.damage_resize(X, scrollbar.align()&FL_ALIGN_TOP ? Y-scrollsize : Y+H, W, scrollsize);
++    hscrollbar.value(hposition_, W, 0, full_width());
+     hscrollbar.linesize(dy);
+     if (drawsquare) draw_child(hscrollbar);
+     else update_child(hscrollbar);
+@@ -707,11 +737,47 @@
+ 
+   // must do shortcuts first or the scrollbar will get them...
+   if (event == FL_ENTER || event == FL_LEAVE) return 1;
+-  if (event == FL_KEYBOARD && type() >= FL_HOLD_BROWSER) {
+-    void* l1 = selection_;
+-    void* l = l1; if (!l) l = top_; if (!l) l = item_first();
++
++  int X, Y, W, H; bbox(X, Y, W, H);
++
++  if (event == FL_SHORTCUT && item_shortcuts() && (Fl::event_state(FL_ALT)==0 || alt_shortcuts())) {
++    void* l = selection_;
++    if (!l) l = item_first();
++    void *li=l;
++    while (l) {
++      // check for shortcut key pressed
++      if (test_shortcut(item_text(l),  Fl::focus() != this)) {
++        // determine what type of selection to make
++        take_focus();
++        if (type()==FL_HOLD_BROWSER || type()==FL_CHECKBOX_BROWSER || type()==FL_SELECT_BROWSER) {
++          select_only(l, when());
++          if (type()==FL_CHECKBOX_BROWSER) {
++            checked(l, -1);
++          }
++        }
++        else {
++          selection_ = l;
++          select(l, !item_selected(l), when() & ~FL_WHEN_ENTER_KEY);
++        }
++        return 1;
++      }
++      // next item
++      if ((l=item_next(l))==NULL) {
++        // wrap back to start of list
++        l=item_first();
++      }
++      // exit once back to starting point
++      if (l==li) break;
++    }
++  }
++  else if (event == FL_SHORTCUT && Fl::focus()!=this && test_shortcut()) {
++    take_focus();
++  }
++  else if (event == FL_KEYBOARD && type() >= FL_SELECT_BROWSER) {
++    void* ls = selection_;
++    void* l = ls; if (!l) l = top_; if (!l) l = item_first();
+     if (l) {
+-      if (type()==FL_HOLD_BROWSER) {
++      if (type()==FL_HOLD_BROWSER || type()==FL_CHECKBOX_BROWSER || type()==FL_SELECT_BROWSER) {
+         switch (Fl::event_key()) {
+         case FL_Down:
+ 	  while ((l = item_next(l))) {
+@@ -719,14 +785,81 @@
+ 	  }
+             return 1;
+         case FL_Up:
+-          while ((l = item_prev(l))) {
+-	    if (item_height(l)>0) {
+-	      select_only(l, when());
++          while ((ls = item_prev(ls))) {
++            if (item_height(ls)>0) {
++              select_only(ls, when());
+ 	      break; // no need to test wp (return 1)
+ 	    }
+ 	  }
+           return 1;
++          case ' ':
++            if (ls && type()==FL_CHECKBOX_BROWSER) {
++              checked(ls, -1);
++              return 1;
+         } 
++        }
++
++        // check if class should handle moving selection bar when
++        // using the keyboard for home/end/pgup/pgdn.
++        if (full_kb_select() && ls) {
++          switch (Fl::event_key()) {
++            case FL_Home:
++              if (selection_!=item_first()) {
++                select_only(item_first(), when());
++              }
++              // allow scrollbar to adjust
++              break;
++            case FL_End:
++              for (void *nl;(nl=item_next(ls));ls=nl);
++              if (selection_!=ls) {
++                select_only(ls, when());
++              }
++              // allow scrollbar to adjust
++              break;
++            case FL_Page_Down:
++            case FL_Page_Up:
++              // figure out entries per box (assumes all items are same height)
++              int itemheight=item_height(item_first());
++              int linesperbox=(H+itemheight-1)/itemheight;
++              // adjust one less for proper paging
++              // (first(pgup)/last(pgdn) item of previous page becomes last(pgup)/first(pgdn) item)
++              linesperbox--;
++              // determine if we prevent scrollbar from getting key press
++              bool eatkey=!displayed(ls);
++              // find the line to highlight
++              while (linesperbox>0) {
++                void *nl=(Fl::event_key()==FL_Page_Down) ? item_next(ls) : item_prev(ls);
++                if (!nl) break;
++                ls=nl;
++                if (item_height(ls)>0) {
++                  linesperbox--;
++                }
++              }
++              if (selection_!=ls) {
++                select_only(ls, when());
++              }
++              // abort if we had to bring this selection into view
++              if (eatkey) {
++                return 1;
++              }
++              // allow scrollbar to adjust
++              break;
++          }
++        }
++
++				// for types other than checkbox we allow enter key to be treated as a click/double click
++				if (type()!=FL_CHECKBOX_BROWSER) {
++        	// make the enter key actually select something as a double click
++        	if ((Fl::event_key() == FL_Enter || Fl::event_key() == FL_KP_Enter)) {
++						if (when()) {
++        	  	// do call back after set double click so double click can be detected
++        	  	Fl::event_clicks(2);
++        	 		do_callback();
++							// eat the key
++        	 		return 1;
++						}
++        	}
++				}
+       } else  {
+         switch (Fl::event_key()) {
+         case FL_Enter:
+@@ -745,7 +878,7 @@
+         case FL_Down:
+           while ((l = item_next(l))) {
+             if (Fl::event_state(FL_SHIFT|FL_CTRL))
+-              select(l, l1 ? item_selected(l1) : 1, when());
++              select(l, ls ? item_selected(ls) : 1, when() & ~FL_WHEN_ENTER_KEY);
+ 	    if (wp.deleted()) return 1;
+             if (item_height(l)>0) goto J1;
+           }
+@@ -753,7 +886,7 @@
+         case FL_Up:
+           while ((l = item_prev(l))) {
+             if (Fl::event_state(FL_SHIFT|FL_CTRL))
+-              select(l, l1 ? item_selected(l1) : 1, when());
++              select(l, ls ? item_selected(ls) : 1, when() & ~FL_WHEN_ENTER_KEY);
+ 	    if (wp.deleted()) return 1;
+             if (item_height(l)>0) goto J1;
+           }
+@@ -771,7 +904,6 @@
+   if (Fl_Group::handle(event)) return 1;
+   if (wp.deleted()) return 1;
+ 
+-  int X, Y, W, H; bbox(X, Y, W, H);
+   int my;
+ // NOTE:
+ // instead of:
+@@ -805,7 +937,8 @@
+     if (type() == FL_NORMAL_BROWSER || !top_)
+       ;
+     else if (type() != FL_MULTI_BROWSER) {
+-      change = select_only(find_item(my), 0);
++      void *l=find_item(my);
++      change = select_only(l, 0);
+       if (wp.deleted()) return 1;
+       if (change && (when() & FL_WHEN_CHANGED)) {
+ 	set_changed();
+@@ -812,6 +945,14 @@
+ 	do_callback();
+ 	if (wp.deleted()) return 1;
+       }
++      // handle check box clicks
++      if (l && type()==FL_CHECKBOX_BROWSER) {
++        // check for click within a checkbox
++        if (Fl::event_inside(X,Y, check_size()+check_pre_gap()+check_post_gap(), H)) {
++          checked(l, -1);
++          if (wp.deleted()) return 1;
++        }
++      }
+     } else {
+       void* l = find_item(my);
+       whichway = 1;
+@@ -916,12 +1057,13 @@
+     py = my;
+     return 1;
+   case FL_RELEASE:
++  /*
+     if (type() == FL_SELECT_BROWSER) {
+       void* t = selection_;
+       deselect();
+       if (wp.deleted()) return 1;
+       selection_ = t;
+-    }
++    }*/
+     if (change) {
+       set_changed();
+       if (when() & FL_WHEN_RELEASE) do_callback();
+@@ -938,7 +1080,7 @@
+     return 1;
+   case FL_FOCUS:
+   case FL_UNFOCUS:
+-    if (type() >= FL_HOLD_BROWSER && Fl::visible_focus()) {
++    if (type() >= FL_SELECT_BROWSER && Fl::visible_focus()) {
+       redraw();
+       return 1;
+     } else return 0;
+@@ -978,6 +1120,7 @@
+   max_width_item = 0;
+   scrollbar_size_ = 0;
+   redraw1 = redraw2 = 0;
++  flags_ex_= 0;
+   end();
+ }
+ 
+@@ -1031,6 +1174,20 @@
+ // Default versions of some of the virtual functions:
+ 
+ /**
++  This method may be provided by the subclass to return the width of the
++  \p item, in pixels.
++  Allow for two additional pixels for the list selection box.
++  This method differs from item_width in that it is only called for
++  selection and scrolling operations.
++  The default implementation calls item_width.
++  \param[in] item The item whose width to return.
++  \returns The width, in pixels.
++*/
++int Fl_Browser_::item_quick_width(void* item) const {
++  return item_width(item);
++}
++
++/**
+   This method may be provided by the subclass to return the height of the
+   \p item, in pixels.  
+   Allow for two additional pixels for the list selection box.
+@@ -1097,6 +1254,15 @@
+ */
+ int Fl_Browser_::item_selected(void* item) const { return item==selection_ ? 1 : 0; }
+ 
++/**
++  change the checked status of item
++
++  \param[in] item The item whose checked state is to be changed
++  \param[in] val The new checked state (1=checked, 0=not checked, -1=toggle)
++*/
++void Fl_Browser_::checked(void *item,int val) { }
++
++
+ //
+ // End of "$Id$".
+ //
+Index: src/Fl_Button.cxx
+===================================================================
+--- src/Fl_Button.cxx	(revision 13043)
++++ src/Fl_Button.cxx	(working copy)
+@@ -126,7 +126,11 @@
+     return 1;
+   case FL_SHORTCUT:
+     if (!(shortcut() ?
+-	  Fl::test_shortcut(shortcut()) : test_shortcut())) return 0;
++    Fl::test_shortcut(shortcut()) : test_shortcut())) {
++      if (!shortcut2() || !Fl::test_shortcut(shortcut2())) {
++        return 0;
++      }
++    }
+     if (Fl::visible_focus() && handle(FL_FOCUS)) Fl::focus(this);
+     goto triggered_by_keyboard;
+   case FL_FOCUS :
+@@ -144,7 +148,9 @@
+     } else return 0;
+     /* NOTREACHED */
+   case FL_KEYBOARD :
+-    if (Fl::focus() == this && Fl::event_key() == ' ' &&
++    if (Fl::focus() == this &&
++        (Fl::event_key() == ' ' ||
++         (type()==FL_NORMAL_BUTTON && (Fl::event_key()==FL_Enter || Fl::event_key()==FL_KP_Enter) && click_on_enter_key())) &&
+         !(Fl::event_state() & (FL_SHIFT | FL_CTRL | FL_ALT | FL_META))) {
+       set_changed();
+     triggered_by_keyboard:
+@@ -217,6 +223,7 @@
+   down_box(FL_NO_BOX);
+   value_ = oldval = 0;
+   shortcut_ = 0;
++  shortcut2_ = 0;
+   set_flag(SHORTCUT_LABEL);
+ }
+ 
+Index: src/Fl_Check_Browser.cxx
+===================================================================
+--- src/Fl_Check_Browser.cxx	(revision 13043)
++++ src/Fl_Check_Browser.cxx	(working copy)
+@@ -90,11 +90,11 @@
+ }
+ 
+ void *Fl_Check_Browser::item_next(void *l) const {
+-	return ((cb_item *)l)->next;
++  return l ? ((cb_item *)l)->next : item_first();
+ }
+ 
+ void *Fl_Check_Browser::item_prev(void *l) const {
+-	return ((cb_item *)l)->prev;
++  return l ? ((cb_item *)l)->prev : item_last();
+ }
+ 
+ int Fl_Check_Browser::item_height(void *) const {
+Index: src/Fl_Checkbox_Browser.cxx
+===================================================================
+--- src/Fl_Checkbox_Browser.cxx	(revision 0)
++++ src/Fl_Checkbox_Browser.cxx	(working copy)
+@@ -0,0 +1,122 @@
++//
++// "$Id: Fl_Checkbox_Browser.cxx 8354 2011-02-01 15:41:04Z manolo $"
++//
++// Fl_Checkbox_Browser header file for the Fast Light Tool Kit (FLTK).
++//
++// Copyright 1998-2010 by Bill Spitzak and others.
++//
++// This library is free software; you can redistribute it and/or
++// modify it under the terms of the GNU Library General Public
++// License as published by the Free Software Foundation; either
++// version 2 of the License, or (at your option) any later version.
++//
++// This library is distributed in the hope that it will be useful,
++// but WITHOUT ANY WARRANTY; without even the implied warranty of
++// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++// Library General Public License for more details.
++//
++// You should have received a copy of the GNU Library General Public
++// License along with this library; if not, write to the Free Software
++// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
++// USA.
++//
++// Please report all bugs and problems on the following page:
++//
++//     http://www.fltk.org/str.php
++//
++
++#include <stdio.h>
++#include <stdlib.h>
++#include "flstring.h"
++#include <FL/fl_draw.H>
++#include <FL/Fl_Checkbox_Browser.H>
++
++Fl_Checkbox_Browser::Fl_Checkbox_Browser(int X,int Y,int W,int H,const char *L)
++                    : Fl_Browser(X,Y,W,H,L)
++{
++  nchecked_=0;
++  type(FL_CHECKBOX_BROWSER);
++}
++
++
++/** Gets the current status of item item. */
++int Fl_Checkbox_Browser::checked(int i) const {
++	FL_BLINE *p = find_line(i);
++
++	if (p) return (p->flags & CHECKED)!=0;
++	return 0;
++}
++
++/** Sets the check status of item item to b. */
++void Fl_Checkbox_Browser::checked(int i, int b) {
++  checked(find_line(i), b);
++}
++
++/**  Sets all the items checked.*/
++void Fl_Checkbox_Browser::check_all() {
++	FL_BLINE *p;
++
++	nchecked_ = size();
++	for (p = (FL_BLINE*)item_first(); p; p = p->next) {
++		p->flags |= CHECKED;
++	}
++	redraw();
++}
++
++/**  Sets all the items unchecked.*/
++void Fl_Checkbox_Browser::check_none() {
++	FL_BLINE *p;
++
++	nchecked_ = 0;
++	for (p = (FL_BLINE*)item_first(); p; p = p->next) {
++		p->flags &= ~CHECKED;
++	}
++	redraw();
++}
++
++/**
++  change the checked status of item
++
++  \param[in] item The item whose checked state is to be changed
++  \param[in] val The new checked state (1=checked, 0=not checked, -1=toggle)
++*/
++void Fl_Checkbox_Browser::checked(void *item,int val)
++{
++  FL_BLINE *p=(FL_BLINE*) item;
++
++	if (p) {
++	  int updated=0;
++	  if (val<0) {
++	    updated=1;
++	    if (p->flags & CHECKED) {
++	      p->flags&=~CHECKED;
++	      nchecked_--;
++	    }
++	    else {
++	      p->flags|=CHECKED;
++	      nchecked_++;
++	    }
++	  }
++	  else if (val>0 && (p->flags & CHECKED)==0) {
++	    updated=1;
++	    p->flags |= CHECKED;
++	    nchecked_++;
++	  }
++	  else if (val==0 && (p->flags & CHECKED)) {
++	    updated=1;
++	    p->flags &= ~CHECKED;
++	    nchecked_--;
++	  }
++	  if (updated) {
++		  redraw();
++      set_check_changed();
++		  if (when() & FL_WHEN_CHANGED) {
++		    do_callback();
++		  }
++	  }
++	}
++}
++
++//
++// End of "$Id: Fl_Checkbox_Browser.cxx 8354 2011-02-01 15:41:04Z manolo $".
++//
+Index: src/Fl_Choice.cxx
+===================================================================
+--- src/Fl_Choice.cxx	(revision 13043)
++++ src/Fl_Choice.cxx	(working copy)
+@@ -36,7 +36,7 @@
+   int W = Fl::is_scheme("gtk+")    ? 20 :			// gtk+  -- fixed size
+           Fl::is_scheme("gleam")   ? 20 :			// gleam -- fixed size
+           Fl::is_scheme("plastic") ? ((H > 20) ? 20 : H)	// plastic: shrink if H<20
+-                                   : ((H > 20) ? 20 : H);	// default: shrink if H<20
++                                   : ((H > 20) ? 20 : H);	// default/smooth: shrink if H<20
+   int X = x() + w() - W - dx;
+   int Y = y() + dy;
+ 
+@@ -53,7 +53,7 @@
+ 
+     // Draw arrow area
+     fl_color(active_r() ? labelcolor() : fl_inactive(labelcolor()));
+-    if (Fl::is_scheme("plastic")) {
++    if (Fl::is_scheme("plastic") || Fl::is_scheme("smooth")) {
+       // Show larger up/down arrows...
+       fl_polygon(x1, y1 + 3, x1 + w1, y1 + w1 + 3, x1 + 2 * w1, y1 + 3);
+       fl_polygon(x1, y1 + 1, x1 + w1, y1 - w1 + 1, x1 + 2 * w1, y1 + 1);
+Index: src/Fl_Counter.cxx
+===================================================================
+--- src/Fl_Counter.cxx	(revision 13043)
++++ src/Fl_Counter.cxx	(working copy)
+@@ -66,15 +66,15 @@
+ 
+   if (type() == FL_NORMAL_COUNTER) {
+     draw_box(boxtype[1], xx[1], y(), ww[1], h(), color());
+-    fl_draw_symbol("@-4<<", xx[1], y(), ww[1], h(), selcolor);
++    fl_draw_symbol(FL_COUNTER_LF2_TX, xx[1], y(), ww[1], h(), selcolor);
+   }
+   draw_box(boxtype[2], xx[2], y(), ww[2], h(), color());
+-  fl_draw_symbol("@-4<",  xx[2], y(), ww[2], h(), selcolor);
++  fl_draw_symbol(FL_COUNTER_LF_TX,  xx[2], y(), ww[2], h(), selcolor);
+   draw_box(boxtype[3], xx[3], y(), ww[3], h(), color());
+-  fl_draw_symbol("@-4>",  xx[3], y(), ww[3], h(), selcolor);
++  fl_draw_symbol(FL_COUNTER_RT_TX,  xx[3], y(), ww[3], h(), selcolor);
+   if (type() == FL_NORMAL_COUNTER) {
+     draw_box(boxtype[4], xx[4], y(), ww[4], h(), color());
+-    fl_draw_symbol("@-4>>", xx[4], y(), ww[4], h(), selcolor);
++    fl_draw_symbol(FL_COUNTER_RT2_TX, xx[4], y(), ww[4], h(), selcolor);
+   }
+ }
+ 
+Index: src/fl_draw.cxx
+===================================================================
+--- src/fl_draw.cxx	(revision 13043)
++++ src/fl_draw.cxx	(working copy)
+@@ -34,6 +34,7 @@
+ 
+ 
+ char fl_draw_shortcut;	// set by fl_labeltypes.cxx
++char fl_force_wrap_breaks; // option set by app and/or widgets
+ 
+ static char* underline_at;
+ 
+@@ -64,11 +65,36 @@
+       // test for word-wrap:
+       if (word_start < p && wrap) {
+ 	double newwidth = w + fl_width(word_end, (int) (o-word_end) );
+-	if (word_end > buf && int(newwidth) > maxw) { // break before this word
++        // determine if line too long
++        if (newwidth > maxw) {
++          // determine if prior word output that fits
++          if (word_end > buf) {
++            // go back to the end of the prior word
+ 	  o = word_end;
+ 	  p = word_start;
+ 	  break;
+ 	}
++          // determine if this line has no spaces and is too long
++          else if (word_end == buf && fl_force_wrap_breaks) {
++            // truncate to maxw
++            while (newwidth > maxw && p > word_start) {
++              // move back to prior char
++              o--;
++              p--;
++              // handle encoded characters in output buffer
++              int tc=*p & 255;
++              if (tc < ' ' || tc == 127) {
++                o--;
++              }
++              // sanity check in debugging mode
++              //assert(o >= buf);
++              // calculate new width again
++              newwidth = w + fl_width(word_end, o-word_end);
++            }
++            // leave the rest of this long word for the next line
++            break;
++          }
++        }
+ 	word_end = o;
+ 	w = newwidth;
+       }
+@@ -96,8 +122,9 @@
+     } else if (c < ' ' || c == 127) { // ^X
+       *o++ = '^';
+       *o++ = c ^ 0x40;
+-    } else if (c == '@' && draw_symbols) { // Symbol???
+-      if (p[1] && p[1] != '@')  break;
++
++    } else if (c == FL_SYMBOL_CHAR && draw_symbols) { // Symbol???
++      if (p[1] && p[1] != FL_SYMBOL_CHAR)  break;
+       *o++ = c;
+       if (p[1]) p++;
+     } else {
+@@ -159,7 +186,7 @@
+   symwidth[1]  = 0;
+ 
+   if (draw_symbols) {
+-    if (str && str[0] == '@' && str[1] && str[1] != '@') {
++    if (str && str[0] == FL_SYMBOL_CHAR && str[1] && str[1] != FL_SYMBOL_CHAR) {
+       // Start with a symbol...
+       for (symptr = symbol[0];
+            *str && !isspace(*str) && symptr < (symbol[0] + sizeof(symbol[0]) - 1);
+@@ -169,7 +196,7 @@
+       symwidth[0] = (w < h ? w : h);
+     }
+ 
+-    if (str && (p = strrchr(str, '@')) != NULL && p > (str + 1) && p[-1] != '@') {
++    if (str && (p = strrchr(str, FL_SYMBOL_CHAR)) != NULL && p > (str + 1) && p[-1] != FL_SYMBOL_CHAR) {
+       strlcpy(symbol[1], p, sizeof(symbol[1]));
+       symwidth[1] = (w < h ? w : h);
+     }
+@@ -187,7 +214,7 @@
+                          align&FL_ALIGN_WRAP, draw_symbols);
+       if (strw<width) strw = (int)width;
+       lines++;
+-      if (!*e || (*e == '@' && e[1] != '@' && draw_symbols)) break;
++      if (!*e || (*e == FL_SYMBOL_CHAR && e[1] != FL_SYMBOL_CHAR && draw_symbols)) break;
+       p = e;
+     }
+   } else lines = 0;
+@@ -265,7 +292,7 @@
+       if (underline_at && underline_at >= linebuf && underline_at < (linebuf + buflen))
+ 	callthis("_",1,xpos+int(fl_width(linebuf,(int) (underline_at-linebuf))),ypos-desc);
+ 
+-      if (!*e || (*e == '@' && e[1] != '@')) break;
++      if (!*e || (*e == FL_SYMBOL_CHAR && e[1] != FL_SYMBOL_CHAR)) break;
+       p = e;
+     }
+   }
+@@ -320,7 +347,7 @@
+   If \p img is provided and is not \p NULL, the image is drawn above or
+   below the text as specified by the \p align value.
+   The \p draw_symbols argument specifies whether or not to look for symbol
+-  names starting with the '\@' character'
++  names starting with the FL_SYMBOL_CHAR character'
+ */
+ void fl_draw(
+   const char* str,
+@@ -378,13 +405,15 @@
+   int W = 0;
+   int symwidth[2], symtotal;
+ 
++  if (w<0) w=0;
++
+   symwidth[0] = 0;	// size of symbol at beginning of string (if any)
+   symwidth[1] = 0;	// size of symbol at end of string (if any)
+ 
+   if (draw_symbols) {
+     // Symbol at beginning of string?
+-    const char *sym2 = (str[0]=='@' && str[1]=='@') ? str+2 : str;	// sym2 check will skip leading @@
+-    if (str[0] == '@' && str[1] != '@') {
++    const char *sym2 = (str[0]==FL_SYMBOL_CHAR && str[1]==FL_SYMBOL_CHAR) ? str+2 : str;	// sym2 check will skip leading @@
++    if (str[0] == FL_SYMBOL_CHAR && str[1] != FL_SYMBOL_CHAR) {
+       while (*str && !isspace(*str)) { ++str; }		// skip over symbol
+       if (isspace(*str)) ++str;				// skip over trailing space
+       sym2 = str;					// sym2 check will skip leading symbol
+@@ -391,7 +420,7 @@
+       symwidth[0] = h;
+     }
+     // Symbol at end of string?
+-    if ((p=strchr(sym2,'@')) != NULL && p[1] != '@') {
++    if ((p=strchr(sym2,FL_SYMBOL_CHAR)) != NULL && p[1] != FL_SYMBOL_CHAR) {
+       symwidth[1] = h;
+     }
+   }
+@@ -404,7 +433,7 @@
+ 			w != 0, draw_symbols);
+     if ((int)ceil(width) > W) W = (int)ceil(width);
+     lines++;
+-    if (!*e || (*e == '@' && e[1] != '@' && draw_symbols)) break;
++    if (!*e || (*e == FL_SYMBOL_CHAR && e[1] != FL_SYMBOL_CHAR && draw_symbols)) break;
+     p = e;
+   }
+ 
+Index: src/Fl_File_Browser.cxx
+===================================================================
+--- src/Fl_File_Browser.cxx	(revision 13043)
++++ src/Fl_File_Browser.cxx	(working copy)
+@@ -48,24 +48,7 @@
+ #define SELECTED 1
+ #define NOTDISPLAYED 2
+ 
+-// TODO -- Warning: The definition of FL_BLINE here is a hack.
+-//    Fl_File_Browser should not do this. PLEASE FIX.
+-//    FL_BLINE should be private to Fl_Browser, and not re-defined here.
+-//    For now, make sure this struct is precisely consistent with Fl_Browser.cxx.
+ //
+-struct FL_BLINE			// data is in a linked list of these
+-{
+-  FL_BLINE	*prev;		// Previous item in list
+-  FL_BLINE	*next;		// Next item in list
+-  void		*data;		// Pointer to data (function)
+-  Fl_Image      *icon;		// Pointer to optional icon
+-  short		length;		// sizeof(txt)-1, may be longer than string
+-  char		flags;		// selected, displayed
+-  char		txt[1];		// start of allocated array
+-};
+-
+-
+-//
+ // 'Fl_File_Browser::full_height()' - Return the height of the list.
+ //
+ 
+Index: src/Fl_File_Chooser.cxx
+===================================================================
+--- src/Fl_File_Chooser.cxx	(revision 13043)
++++ src/Fl_File_Chooser.cxx	(working copy)
+@@ -269,7 +269,7 @@
+       Fl_Group::current()->resizable(favList);
+     } // Fl_File_Browser* favList
+     { Fl_Group* o = new Fl_Group(320, 10, 25, 95);
+-      { favUpButton = new Fl_Button(320, 10, 25, 25, "@8>");
++      { favUpButton = new Fl_Button(320, 10, 25, 25, FL_UP_TRIANGLE_TX);
+         favUpButton->callback((Fl_Callback*)cb_favUpButton);
+       } // Fl_Button* favUpButton
+       { favDeleteButton = new Fl_Button(320, 45, 25, 25, "X");
+@@ -277,7 +277,7 @@
+         favDeleteButton->callback((Fl_Callback*)cb_favDeleteButton);
+         Fl_Group::current()->resizable(favDeleteButton);
+       } // Fl_Button* favDeleteButton
+-      { favDownButton = new Fl_Button(320, 80, 25, 25, "@2>");
++      { favDownButton = new Fl_Button(320, 80, 25, 25, FL_DN_TRIANGLE_TX);
+         favDownButton->callback((Fl_Callback*)cb_favDownButton);
+       } // Fl_Button* favDownButton
+       o->end();
+Index: src/Fl_File_Chooser2.cxx
+===================================================================
+--- src/Fl_File_Chooser2.cxx	(revision 13043)
++++ src/Fl_File_Chooser2.cxx	(working copy)
+@@ -1254,7 +1254,7 @@
+     set = 1;
+   } else if (fl_filename_isdir(filename)) {
+     // filename is a directory, show a folder icon
+-    newlabel = "@fileopen";
++    newlabel = FL_SYM_FILEOPEN_TX;
+     set = 1;
+   } else {
+     struct stat s;
+@@ -1261,7 +1261,7 @@
+     if (fl_stat(filename, &s)==0) {
+       if ((s.st_mode & S_IFREG) == 0) {
+         // this is no regular file, probably some kind of device
+-        newlabel = "@-3refresh"; // a cross
++        newlabel = FL_SYM_CROSS_TX; // a cross
+         set = 1;
+       } else if (s.st_size==0) {
+         // this file is empty
+@@ -1397,7 +1397,7 @@
+   } else if (newlabel) {
+     previewBox->label(newlabel);
+     previewBox->align(FL_ALIGN_CLIP);
+-    previewBox->labelsize(newlabel[0]=='@'?75:12);
++    previewBox->labelsize(newlabel[0]==FL_SYMBOL_CHAR ? 75:12);
+     previewBox->labelfont(FL_HELVETICA);
+   }
+ 
+Index: src/Fl_get_system_colors.cxx
+===================================================================
+--- src/Fl_get_system_colors.cxx	(revision 13043)
++++ src/Fl_get_system_colors.cxx	(working copy)
+@@ -145,6 +145,8 @@
+         - "plastic" - This scheme is inspired by the Aqua user interface
+                       on Mac OS X
+ 
++        - "smooth" - Same as plastic but without the stripped background
++
+         - "gtk+" - This scheme is inspired by the Red Hat Bluecurve theme
+ 
+         - "gleam" - This scheme is inspired by the Clearlooks Glossy scheme.
+@@ -167,6 +169,7 @@
+     if (!fl_ascii_strcasecmp(s, "none") || !fl_ascii_strcasecmp(s, "base") || !*s) s = 0;
+     else if (!fl_ascii_strcasecmp(s, "gtk+")) s = strdup("gtk+");
+     else if (!fl_ascii_strcasecmp(s, "plastic")) s = strdup("plastic");
++    else if (!fl_ascii_strcasecmp(s, "smooth")) s = strdup("smooth");
+     else if (!fl_ascii_strcasecmp(s, "gleam")) s = strdup("gleam");
+     else s = 0;
+   }
+@@ -188,7 +191,7 @@
+ int Fl::reload_scheme() {
+   Fl_Window *win;
+ 
+-  if (scheme_ && !fl_ascii_strcasecmp(scheme_, "plastic")) {
++  if (scheme_ && (!fl_ascii_strcasecmp(scheme_, "plastic") || !fl_ascii_strcasecmp(scheme_, "smooth"))) {
+     // Update the tile image to match the background color...
+     uchar r, g, b;
+     int nr, ng, nb;
+@@ -197,6 +200,13 @@
+     // OSX 10.3 and higher use a background with less contrast...
+     static uchar levels[3] = { 0xff, 0xf8, 0xf4 };
+ 
++    if (!fl_ascii_strcasecmp(scheme_, "smooth")) {
++      if (scheme_bg_) {
++        delete scheme_bg_;
++        scheme_bg_ = (Fl_Image *)0;
++      }
++    }
++    else {
+     get_color(FL_GRAY, r, g, b);
+ 
+ //    printf("FL_GRAY = 0x%02x 0x%02x 0x%02x\n", r, g, b);
+@@ -218,6 +228,7 @@
+     tile.uncache();
+ 
+     if (!scheme_bg_) scheme_bg_ = new Fl_Tiled_Image(&tile, 0, 0);
++    }
+ 
+     // Load plastic buttons, etc...
+     set_boxtype(FL_UP_FRAME,        FL_PLASTIC_UP_FRAME);
+Index: src/Fl_Help_Dialog.cxx
+===================================================================
+--- src/Fl_Help_Dialog.cxx	(revision 13043)
++++ src/Fl_Help_Dialog.cxx	(working copy)
+@@ -149,13 +149,13 @@
+   { window_ = new Fl_Double_Window(530, 385, "Help Dialog");
+     window_->user_data((void*)(this));
+     { Fl_Group* o = new Fl_Group(10, 10, 511, 25);
+-      { back_ = new Fl_Button(10, 10, 25, 25, "@<-");
++      { back_ = new Fl_Button(10, 10, 25, 25, FL_LT_ARROW_TX);
+         back_->tooltip("Show the previous help page.");
+         back_->shortcut(0xff51);
+         back_->labelcolor((Fl_Color)2);
+         back_->callback((Fl_Callback*)cb_back_);
+       } // Fl_Button* back_
+-      { forward_ = new Fl_Button(45, 10, 25, 25, "@->");
++      { forward_ = new Fl_Button(45, 10, 25, 25, FL_RT_ARROW_TX);
+         forward_->tooltip("Show the next help page.");
+         forward_->shortcut(0xff53);
+         forward_->labelcolor((Fl_Color)2);
+@@ -176,7 +176,7 @@
+       { Fl_Group* o = new Fl_Group(350, 10, 171, 25);
+         o->box(FL_DOWN_BOX);
+         o->color(FL_BACKGROUND2_COLOR);
+-        { find_ = new Fl_Input(375, 12, 143, 21, "@search");
++        { find_ = new Fl_Input(375, 12, 143, 21, FL_SYM_SEARCH_TX);
+           find_->tooltip("find text in document");
+           find_->box(FL_FLAT_BOX);
+           find_->labelsize(13);
+Index: src/Fl_Input.cxx
+===================================================================
+--- src/Fl_Input.cxx	(revision 13043)
++++ src/Fl_Input.cxx	(working copy)
+@@ -370,6 +370,7 @@
+   unsigned int mods = Fl::event_state() & (FL_META|FL_CTRL|FL_ALT);
+   unsigned int shift = Fl::event_state() & FL_SHIFT;
+   unsigned int multiline = (input_type() == FL_MULTILINE_INPUT) ? 1 : 0;
++
+   //
+   // The following lists apps that support these keypresses.
+   // Prefixes: '!' indicates NOT supported, '?' indicates un-verified.
+@@ -460,6 +461,9 @@
+   static Fl_Widget *dnd_save_focus = NULL;
+   switch (event) {
+     case FL_UNFOCUS:
++      // disable unicode input
++      unicode_input_active(0);
++
+       if (Fl::screen_driver()->has_marked_text() && Fl::compose_state) {
+ 	this->mark( this->position() );
+ 	Fl::reset_marked_text();
+@@ -489,6 +493,65 @@
+       break;
+       
+     case FL_KEYBOARD:
++
++      // handle unicode input
++      if (unicode_input_active()) {
++        // get as uppercase
++        int uch=Fl::event_key();
++        uch=toupper(uch);
++        // check key if key range valid for hex char
++        if ((uch>='0' && uch<='9') || (uch>='A' && uch<='F')) {
++          // convert key to value
++          uch-='0';
++          if (uch > 9) {
++            uch-=('A'-'9')-1;
++          }
++          unicodeval_=(unicodeval_ * 16)+uch;
++          return 1;
++        }
++        else {
++          // end the input (don't allow chars < a space)
++          if (unicodeval_>=' ') {
++            // build string (not zero terminated)
++            char utext[MB_CUR_MAX];
++            int utextlen;
++            // check for single byte hybrid mode
++            if (unicode_single_byte() && unicodeval_<256) {
++              utext[0]=(unsigned char) unicodeval_;
++              utextlen=1;
++            }
++            else utextlen=wctomb(utext, unicodeval_);
++            // ensure no error code
++            if (utextlen>0) {
++              // make actual replacement of character
++              replace(position(), mark(), utext, utextlen);
++            }
++          }
++          // disable mode
++          unicode_input_active(0);
++          // eat key that ended input if space or enter
++          if (uch==' ' || uch==FL_Enter || uch==FL_KP_Enter) {
++            return 1;
++          }
++        }
++      }
++      else if (!readonly() && unicode_input()) {
++        // check if ctrl-shift down
++        if ((Fl::event_state() & (FL_CTRL|FL_SHIFT))==(FL_CTRL|FL_SHIFT)) {
++          // yes, check if u
++          int ch=Fl::event_key();
++          if (ch=='U' || ch=='u') {
++            // yes, but ignore if someone set on int/float types
++            if (input_type()!=FL_FLOAT_INPUT && input_type()!=FL_INT_INPUT) {
++              // reset value to build
++              unicodeval_=0;
++              unicode_input_active(1);
++              return 1;
++            }
++          }
++        }
++      }
++
+       // Handle special case for multiline input with 'old tab behavior'
+       // where tab is entered as a character: make sure user attempt to 'tab over'
+       // widget doesn't destroy the field, replacing it with a tab character.
+Index: src/Fl_Input_.cxx
+===================================================================
+--- src/Fl_Input_.cxx	(revision 13043)
++++ src/Fl_Input_.cxx	(working copy)
+@@ -59,14 +59,14 @@
+ //  const char *pe = p + strlen(p);
+ 
+   if (input_type()==FL_SECRET_INPUT) {
+-    while (o<e && p < value_+size_) {
+-      if (fl_utf8len((char)p[0]) >= 1) {
++    const char *pend=value_ + size_;
++    while (o<e && p < pend) {
++      if (fl_utf8len_real(p, (int) (pend-p)) >= 1) {
+ 	l_secret = fl_utf8encode(Fl_Screen_Driver::secret_input_character, o);
+ 	o += l_secret;
+       }
+       p++;
+     }
+-
+   } else while (o<e) {
+     if (wrap() && (p >= value_+size_ || isspace(*p & 255))) {
+       word_wrap = w() - Fl::box_dw(box()) - 2;
+@@ -98,6 +98,10 @@
+     }
+   }
+   *o = 0;
++  // truncate to user requested maximum size
++  if (maximum_size_<MAXBUF) {
++    buf[maximum_size_]=0;
++  }
+   return p;
+ }
+ 
+@@ -123,7 +127,7 @@
+   int l;
+   if (input_type()==FL_SECRET_INPUT) {
+     while (p<e) {
+-      l = fl_utf8len((char)p[0]);
++      l = fl_utf8len_real(p, (int) (e-p));
+       if (l >= 1) n += l_secret;
+       p += l;
+     }
+@@ -137,7 +141,7 @@
+     } else {
+       n++;
+     }
+-    chr += fl_utf8len((char)p[0]) >= 1;
++    chr += fl_utf8len_real(p, (int) (e-p)) >= 1;
+     p++;
+   }
+   if (returnn) *returnn = n;
+@@ -376,8 +380,13 @@
+ 	        (int)(xpos+curx+0.5f), Y+ypos+height-4,
+ 	        (int)(xpos+curx+3.5f), Y+ypos+height-1);
+       } else {
++        if (unicode_input_active()) {
++          fl_rectf((int)(xpos+curx+0.5), (Y+ypos)+(height/3), 2, height/2);
++        }
++        else {
+         fl_rectf((int)(xpos+curx+0.5), Y+ypos, 2, height);
+       }
++      }
+       Fl::insertion_point_location((int)xpos+curx, Y+ypos+height, height);
+     }
+ 
+@@ -548,7 +557,7 @@
+   const char *l, *r, *t; double f0 = Fl::event_x()-X+xscroll_;
+   for (l = p, r = e; l<r; ) {
+     double f;
+-    int cw = fl_utf8len((char)l[0]);
++    int cw = fl_utf8len_real(l, (int) (r-l));
+     if (cw < 1) cw = 1;
+     t = l+cw;
+     f = X-xscroll_+expandpos(p, t, buf, 0);
+@@ -557,7 +566,7 @@
+   }
+   if (l < e) { // see if closer to character on right:
+     double f1;
+-    int cw = fl_utf8len((char)l[0]);
++    int cw = fl_utf8len_real(l, (int) (e - l));
+     if (cw > 0) {
+       f1 = X-xscroll_+expandpos(p, l + cw, buf, 0) - Fl::event_x();
+       if (f1 < f0) l = l+cw;
+@@ -601,6 +610,50 @@
+ }
+ 
+ /**
++  Helper for position(int p, int m)
++
++  Adjust the to the position /e p aligned with utf8
++  chars based on the current_position.
++
++  \param p index for the desired cursor position
++  \param current_position the cursor current position
++  \return aligned position for p
++*/
++int Fl_Input_::position_adjust(int p, int current_position)
++{
++  // point to start character at p
++  const char *u8chr=value() + p;
++
++  u8chr = fl_utf8_find_leading_char(u8chr, value(), size());
++
++  // adjust to actual position of u8chr
++  int u8chrpos=(int) (u8chr - value());
++
++  // check direction
++  if (p > current_position) {
++    // forward
++    while (u8chrpos<size() && u8chrpos < p) {
++      // calc chr len
++      int u8chrlen = fl_utf8len_real(u8chr, size() - u8chrpos);
++      if (u8chrlen < 0) u8chrlen = 1;
++      // move to next char
++      u8chrpos += u8chrlen;
++      u8chr += u8chrlen;
++    }
++  }
++  else {
++    // reverse
++    while (u8chrpos>0 && u8chrpos > p) {
++      u8chr = fl_utf8_find_leading_char(u8chr - 1, value(), size());
++      u8chrpos = (int) (u8chr - value());
++    }
++  }
++  // return final position
++  return u8chrpos;
++}
++
++
++/**
+   Sets the index for the cursor and mark.
+ 
+   The input widget maintains two pointers into the string. The
+@@ -618,8 +671,8 @@
+   \see position(int), position(), mark(int)
+ */
+ int Fl_Input_::position(int p, int m) {
++  was_up_down = 0;
+   int is_same = 0;
+-  was_up_down = 0;
+   if (p<0) p = 0;
+   if (p>size()) p = size();
+   if (m<0) m = 0;
+@@ -626,26 +679,12 @@
+   if (m>size()) m = size();
+   if (p == m) is_same = 1;
+ 
+-  while (p < position_ && p > 0 && (size() - p) > 0 &&
+-       (fl_utf8len((char)(value() + p)[0]) < 1)) { p--; }
+-  int ul = fl_utf8len((char)(value() + p)[0]);
+-  while (p < size() && p > position_ && ul < 0) {
+-       p++;
+-       ul = fl_utf8len((char)(value() + p)[0]);
+-  }
++  p = position_adjust(p, position_);
++  m = position_adjust(m, mark_);
+ 
+-  while (m < mark_ && m > 0 && (size() - m) > 0 &&
+-       (fl_utf8len((char)(value() + m)[0]) < 1)) { m--; }
+-  ul = fl_utf8len((char)(value() + m)[0]);
+-  while (m < size() && m > mark_ && ul < 0) {
+-       m++;
+-       ul = fl_utf8len((char)(value() + m)[0]);
+-  }
+   if (is_same) m = p;
+   if (p == position_ && m == mark_) return 0;
+ 
+-
+-  //if (Fl::selection_owner() == this) Fl::selection_owner(0);
+   if (p != m) {
+     if (p != position_) minimal_update(position_, p);
+     if (m != mark_) minimal_update(mark_, m);
+@@ -789,21 +828,22 @@
+   invalid UTF-8 bytes as one character each).
+ */
+ int Fl_Input_::replace(int b, int e, const char* text, int ilen) {
+-  int ul, om, op;
++  int om, op;
+   was_up_down = 0;
+-
++  int is_same = 0;
+   if (b<0) b = 0;
+   if (e<0) e = 0;
+   if (b>size_) b = size_;
+   if (e>size_) e = size_;
+   if (e<b) {int t=b; b=e; e=t;}
+-  while (b != e && b > 0 && (size_ - b) > 0 &&
+-       (fl_utf8len((value_ + b)[0]) < 1)) { b--; }
+-  ul = fl_utf8len((char)(value_ + e)[0]);
+-  while (e < size_ && e > 0 && ul < 0) {
+-       e++;
+-       ul = fl_utf8len((char)(value_ + e)[0]);
++  if (e==b) is_same = 1;
++
++  b = position_adjust(b, e);
++  if (is_same) {
++      e = b;
+   }
++  else e = position_adjust(e, b);
++
+   if (text && !ilen) ilen = (int) strlen(text);
+   if (e<=b && !ilen) return 0; // don't clobber undo for a null operation
+ 
+@@ -812,12 +852,13 @@
+ 
+   int nchars = 0;	// characters in value() - deleted + inserted
+   const char *p = value_;
+-  while (p < (char *)(value_+size_)) {
++  const char *pend = value_ + size_;
++  while (p < pend) {
+     if (p == (char *)(value_+b)) { // skip removed part
+       p = (char *)(value_+e);
+-      if (p >= (char *)(value_+size_)) break;
++      if (p >= pend) break;
+     }
+-    int ulen = fl_utf8len(*p);
++    int ulen = fl_utf8len_real(p, (int) (pend - p));
+     if (ulen < 1) ulen = 1; // invalid UTF-8 character: count as 1
+     nchars++;
+     p += ulen;
+@@ -824,10 +865,14 @@
+   }
+   int nlen = 0;		// length (in bytes) to be inserted
+   p = text;
+-  while (p < (char *)(text+ilen) && nchars < maximum_size()) {
+-    int ulen = fl_utf8len(*p);
++  pend = text + ilen;
++  while (p < pend && nchars < maximum_size()) {
++    int ulen = fl_utf8len_real(p, (int) (pend - p));
+     if (ulen < 1) ulen = 1; // invalid UTF-8 character: count as 1
+     nchars++;
++    if (nchars > maximum_size()) {
++      break;
++    }
+     p += ulen;
+     nlen += ulen;
+   }
+@@ -1112,6 +1157,7 @@
+ */
+ Fl_Input_::Fl_Input_(int X, int Y, int W, int H, const char* l)
+ : Fl_Widget(X, Y, W, H, l) {
++  flags_ex_ = 0;
+   box(FL_DOWN_BOX);
+   color(FL_BACKGROUND2_COLOR, FL_SELECTION_COLOR);
+   align(FL_ALIGN_LEFT);
+@@ -1170,8 +1216,13 @@
+   }
+   memmove(buffer, value_, size_); buffer[size_] = 0;
+   value_ = buffer;
++  // limit to user provied max input
++  if (maximum_size_<size_) {
++    buffer[maximum_size_]=0;
+ }
+ 
++}
++
+ /**
+   Changes the widget text.
+ 
+@@ -1216,6 +1267,10 @@
+     xscroll_ = yscroll_ = 0;
+     minimal_update(0);
+   }
++
++  if (size_>maximum_size_) {
++    size_=maximum_size_;
++  }
+   position(readonly() ? 0 : size());
+   return 1;
+ }
+Index: src/Fl_Input_Choice.cxx
+===================================================================
+--- src/Fl_Input_Choice.cxx	(revision 13043)
++++ src/Fl_Input_Choice.cxx	(working copy)
+@@ -99,9 +99,30 @@
+ Fl_Input_Choice::InputMenuButton::InputMenuButton(int x,int y,int w,int h,const char*l)
+                                  :Fl_Menu_Button(x,y,w,h,l)
+ {
++  flags_ex_=0;
+   box(FL_UP_BOX);
+ }
+ 
++/** Handle down arrow to open button */
++
++int Fl_Input_Choice::InputMenuButton::handle(int event)
++{
++  if (event==FL_FOCUS) {
++    // don't allow focus to button
++    return 0;
++  }
++
++  if (arrow_shortcut()) {
++    // captures all forms of down arrow to open menu.
++    if (event==FL_KEYBOARD && Fl::focus()==this && Fl::event_key()==FL_Down) {
++      popup();
++      return 1;
++    }
++  }
++
++  return Fl_Menu_Button::handle(event);
++}
++
+ /** Draws the private menu button. */
+ 
+ void Fl_Input_Choice::InputMenuButton::draw() {
+@@ -175,8 +196,7 @@
+ : Fl_Group(X,Y,W,H,L) {
+   Fl_Group::box(FL_DOWN_BOX);
+   align(FL_ALIGN_LEFT);					// default like Fl_Input
+-  inp_ = new Fl_Input(inp_x(), inp_y(),
+-                      inp_w(), inp_h());
++  inp_ = new InputSubclass(inp_x(), inp_y(),inp_w(), inp_h());
+   inp_->callback(inp_cb, (void*)this);
+   inp_->box(FL_FLAT_BOX);				// cosmetic
+   inp_->when(FL_WHEN_CHANGED|FL_WHEN_NOT_CHANGED);
+@@ -212,6 +232,24 @@
+   // no need to call Fl_Widget::set_changed()
+ }
+ 
++/** Handle down arrow to open button */
++
++int Fl_Input_Choice::handle(int event)
++{
++  // this captures Alt-Down arrow when input field has kb focus
++  // because a normal down arrow is already eaten by the Fl_Input
++  // object (receives handle first when it has focus).  If you want
++  // the down arrow to work too, you'd need to call
++  // enable_arrow_shortcut().
++  if (arrow_shortcut()) {
++    if (event==FL_KEYBOARD && Fl::focus()==inp_ && Fl::event_key()==FL_Down) {
++      menu_->popup();
++      return 1;
++    }
++  }
++  return Fl_Group::handle(event);
++}
++
+ /** Clears the changed() state of both input and menu button widgets. */
+ void Fl_Input_Choice::clear_changed() {
+   inp_->clear_changed();
+@@ -261,6 +299,33 @@
+   return 0;		// not found
+ }
+ 
++/** Constructor for private input widget . */
++
++Fl_Input_Choice::InputSubclass::InputSubclass(int X, int Y, int W, int H)
++               : Fl_Input(X, Y, W, H)
++{
++  flags_ex_=0;
++};
++
++/**
++  Handles events of Fl_Input_Choice embedded input widget.
++
++  Works like Fl_Input::handle() but ignores FL_Up and FL_Down keys
++  so they can be handled by the parent widget (Fl_Input_Choice).
++*/
++int Fl_Input_Choice::InputSubclass::handle(int event) {
++  if (event == FL_KEYBOARD) {
++    if (arrow_shortcut()) {
++      const int key = Fl::event_key();
++      if (key == FL_Down) {
++        return 0;
++      }
++    }
++  }
++  return Fl_Input::handle(event);
++}
++
++
+ //
+ // End of "$Id$".
+ //
+Index: src/Fl_Light_Button.cxx
+===================================================================
+--- src/Fl_Light_Button.cxx	(revision 13043)
++++ src/Fl_Light_Button.cxx	(working copy)
+@@ -126,7 +126,7 @@
+     int ww = W/2+1;
+     int xx = dx;
+     if (w()<ww+2*xx) xx = (w()-ww)/2;
+-    if (Fl::is_scheme("plastic")) {
++    if (Fl::is_scheme("plastic") || Fl::is_scheme("smooth")) {
+       col = active_r() ? selection_color() : fl_inactive(selection_color());
+       fl_color(value() ? col : fl_color_average(col, FL_BLACK, 0.5f));
+       fl_pie(x()+xx, y()+dy+1, ww, hh, 0, 360);
+Index: src/Fl_Menu_add.cxx
+===================================================================
+--- src/Fl_Menu_add.cxx	(revision 13043)
++++ src/Fl_Menu_add.cxx	(working copy)
+@@ -153,7 +153,10 @@
+   const char* item;
+ 
+   // split at slashes to make submenus:
+-  for (;;) {
++	if (myflags & FL_MENU_NO_SPLIT) {
++		item=mytext;
++	}
++  else for (;;) {
+ 
+     // leading slash makes us assume it is a filename:
+     if (*mytext == '/') {item = mytext; break;}
+Index: src/fl_shortcut.cxx
+===================================================================
+--- src/fl_shortcut.cxx	(revision 13043)
++++ src/fl_shortcut.cxx	(working copy)
+@@ -71,6 +71,11 @@
+   // if shift is also correct, check for exactly equal keysyms:
+   if (!(mismatch&(FL_SHIFT)) && key == (unsigned)Fl::event_key()) return 1;
+ 
++  // test new logic where keypad enter is same as enter
++  if (key==FL_Enter && new_shortcut_logic) {
++    if (!(mismatch&(FL_SHIFT)) && FL_KP_Enter == (unsigned)Fl::event_key()) return 1;
++  }
++
+   // try matching utf8, ignore shift:
+   unsigned int firstChar = fl_utf8decode(Fl::event_text(), Fl::event_text()+Fl::event_length(), 0);
+   if ( ! (FL_CAPS_LOCK&shift) && key==firstChar) return 1;
+Index: src/Fl_Spinner.cxx
+===================================================================
+--- src/Fl_Spinner.cxx	(revision 13043)
++++ src/Fl_Spinner.cxx	(working copy)
+@@ -39,7 +39,10 @@
+     v = atof(sb->input_.value());
+ 
+     if (v < sb->minimum_) {
+-      sb->value_ = sb->minimum_;
++      if (v==0 && sb->blank_allowed()) {
++        sb->value_=0;
++      }
++      else sb->value_ = sb->minimum_;
+       sb->update();
+     } else if (v > sb->maximum_) {
+       sb->value_ = sb->maximum_;
+@@ -48,24 +51,31 @@
+   } else if (w == &(sb->up_button_)) {
+     // Up button pressed...
+     v = sb->value_ + sb->step_;
+-    if (v > sb->maximum_) {
+-      if (sb->wrap_)
+-	v = sb->minimum_;
+-      else
+-	v = sb->maximum_;
++
++    // catch up arrow starting at zero/blank
++    if (v < sb->minimum_ && sb->blank_allowed()) {
++      sb->value_ = sb->minimum_;
+     }
+-    sb->value_ = v;
++    else if (v > sb->maximum_) {
++      if (sb->minimum_>0 && sb->blank_allowed()) {
++        sb->value_=0;
++      }
++      else sb->value_ = sb->minimum_;
++    }
++    else sb->value_ = v;
++
+     sb->update();
+   } else if (w == &(sb->down_button_)) {
+     // Down button pressed...
+     v = sb->value_ - sb->step_;
+     if (v < sb->minimum_) {
+-      if (sb->wrap_)
+-	v = sb->maximum_;
+-      else
+-	v = sb->minimum_;
++      if (v>0 && sb->blank_allowed()) {
++        sb->value_=0;
+     }
+-    sb->value_ = v;
++      else sb->value_ = sb->maximum_;
++    }
++    else sb->value_ = v;
++
+     sb->update();
+   }
+ 
+@@ -93,8 +103,6 @@
+   input_.value(s);
+ }
+ 
+-#define FL_UP_ARROW_TX "@-42<"
+-#define FL_DOWN_ARROW_TX "@-42>"
+ 
+ /**
+   Creates a new Fl_Spinner widget using the given position, size,
+@@ -108,10 +116,12 @@
+   input_(X, Y, W - H / 2 - 2, H),
+   up_button_(X + W - H / 2 - 2, Y, H / 2 + 2, H / 2, FL_UP_ARROW_TX),
+   down_button_(X + W - H / 2 - 2, Y + H - H / 2,
+-               H / 2 + 2, H / 2, FL_DOWN_ARROW_TX)
++               H / 2 + 2, H / 2, FL_DN_ARROW_TX)
+ {
+   end();
+ 
++  flags_ex_=0;
++
+   value_   = 1.0;
+   minimum_ = 1.0;
+   maximum_ = 100.0;
+@@ -123,7 +133,7 @@
+ 
+   input_.value("1");
+   input_.type(FL_INT_INPUT);
+-  input_.when(FL_WHEN_ENTER_KEY | FL_WHEN_RELEASE);
++  input_.when(/*FL_WHEN_ENTER_KEY | */FL_WHEN_RELEASE);
+   input_.callback((Fl_Callback *)sb_cb, this);
+ 
+   up_button_.callback((Fl_Callback *)sb_cb, this);
+Index: src/fl_symbols.cxx
+===================================================================
+--- src/fl_symbols.cxx	(revision 13043)
++++ src/fl_symbols.cxx	(working copy)
+@@ -17,7 +17,7 @@
+ //
+ 
+ // These are small graphics drawn by the normal label-drawing
+-// code when the string starts with an '@' sign.
++// code when the string starts with an FL_SYMBOL_CHAR sign.
+ 
+ // Adapted from original code written by:
+ 
+@@ -70,7 +70,7 @@
+ 
+ /**
+   Adds a symbol to the system.
+-  \param[in] name     name of symbol (without the "@")
++  \param[in] name     name of symbol (without the FL_SYMBOL_CHAR)
+   \param[in] drawit   function to draw symbol
+   \param[in] scalable set to 1 if \p drawit uses scalable vector drawing
+   \returns 1 on success, 0 on failure
+@@ -102,7 +102,7 @@
+ // provided for back compatibility:
+ int fl_draw_symbol(const char *label,int x,int y,int w,int h,Fl_Color col) {  
+   const char *p = label;
+-  if (*p++ != '@') return 0;
++  if (*p++ != FL_SYMBOL_CHAR) return 0;
+   fl_init_symbols();
+   int equalscale = 0;
+   if (*p == '#') {equalscale = 1; p++;}
+Index: src/Fl_Text_Display.cxx
+===================================================================
+--- src/Fl_Text_Display.cxx	(revision 13043)
++++ src/Fl_Text_Display.cxx	(working copy)
+@@ -2246,7 +2246,7 @@
+     else background = fl_color_average(color(), selection_color(), 0.6f);
+     foreground = fl_contrast(textcolor(), background);
+   } else {
+-    foreground = textcolor();
++    foreground = active_r() ? textcolor() : fl_inactive(textcolor());
+     background = color();
+   }
+ 
+Index: src/Fl_Tree_Prefs.cxx
+===================================================================
+--- src/Fl_Tree_Prefs.cxx	(revision 13043)
++++ src/Fl_Tree_Prefs.cxx	(working copy)
+@@ -233,7 +233,7 @@
+   // Let fltk's current 'scheme' affect defaults
+   if (Fl::is_scheme("gtk+")) {
+     _selectbox = _FL_GTK_THIN_UP_BOX;
+-  } else if (Fl::is_scheme("plastic")) {
++  } else if (Fl::is_scheme("plastic") || Fl::is_scheme("smooth")) {
+     _selectbox = _FL_PLASTIC_THIN_UP_BOX;
+   }
+ }
+Index: src/fl_utf8.cxx
+===================================================================
+--- src/fl_utf8.cxx	(revision 13043)
++++ src/fl_utf8.cxx	(working copy)
+@@ -60,7 +60,76 @@
+   return table[ucs];
+ }
+ 
++
+ /**
++  Find the leading character of a utf8 sequence based on
++  \e u8c in \e u8s_start with \e chars_avail available
++
++  \param u8c char position in string (may be in sequence)
++  \param u8s_start the string u8c is within
++  \param chars_avail number of chars available in u8s_start
++  \return pointer to start of a character
++*/
++const char *fl_utf8_find_leading_char(const char *u8c, const char *u8s_start, int chars_avail)
++{
++  const char *u8c_org = u8c;
++
++  while (u8c > u8s_start && fl_utf8_is_continuation_char(*u8c)) {
++    u8c--;
++  }
++
++  if (u8c != u8c_org && fl_utf8_is_leading_char(*u8c)) {
++    // check if valid sequence
++    if (fl_utf8len_real(u8c, (int) ((u8s_start + chars_avail) - u8c))>1) {
++      // return start of utf8 seq
++      return u8c;
++    }
++  }
++
++  // return original location
++  return ( u8c_org );
++}
++
++/**
++  Returns the byte length of the UTF-8 sequence -1 if not valid.
++*/
++int fl_utf8len_real(const char *str, int chars_avail)
++{
++  char c=*str;
++  if (!(c & 0x80)) return 1;
++
++  int utf8chlen;
++  if (c & 0x40) {
++    if (c & 0x20) {
++      if (c & 0x10) {
++        if (c & 0x08) {
++          if (c & 0x04) {
++            utf8chlen = 6;
++          }
++          else utf8chlen = 5;
++        }
++        else utf8chlen = 4;
++      }
++      else utf8chlen = 3;
++    }
++    else utf8chlen = 2;
++    if (utf8chlen <= chars_avail) {
++      const char *p=str;
++      for (int i = 1; i < utf8chlen; i++) {
++        p++;
++        if (((unsigned char)(*p) & 0xC0)!=0x80) {
++          return -1;
++        }
++      }
++      return utf8chlen;
++    }
++  }
++  return -1;
++}
++
++
++
++/**
+   Returns the byte length of the UTF-8 sequence with first byte \p c,
+   or -1 if \p c is not valid.
+ 
+@@ -130,7 +199,7 @@
+   int i = 0;
+   int nbc = 0;
+   while (i < len) {
+-    int cl = fl_utf8len((buf+i)[0]);
++    int cl = fl_utf8len_real((const char*)(buf+i), len - i);
+     if (cl < 1) cl = 1;
+     nbc++;
+     i += cl;
+Index: src/Fl_Widget.cxx
+===================================================================
+--- src/Fl_Widget.cxx	(revision 13043)
++++ src/Fl_Widget.cxx	(working copy)
+@@ -136,7 +136,14 @@
+     // Make sure fl_graphics_driver is initialized. Important if we are called by a static initializer.
+     Fl_Display_Device::display_device();
+   }
++
++  // handle application option
++  if (L && Fl::copy_labels()) {
++    if ((label_.value=strdup(L))!=NULL) {
++      set_flag(COPIED_LABEL);
+ }
++  }
++}
+ 
+ void Fl_Widget::resize(int X, int Y, int W, int H) {
+   x_ = X; y_ = Y; w_ = W; h_ = H;
+@@ -276,28 +283,46 @@
+ 
+ 
+ void Fl_Widget::label(const char *a) {
++
++  // handle application option
++  if (Fl::copy_labels()) {
++    copy_label(a);
++    return;
++  }
++
++  void *freelabel=NULL;
+   if (flags() & COPIED_LABEL) {
+     // reassigning a copied label remains the same copied label
+     if (label_.value == a)
+       return;
+-    free((void *)(label_.value));
++    freelabel=(void *)(label_.value);
+     clear_flag(COPIED_LABEL);
+   }
+   label_.value=a;
++  // free old label if existed
++  free(freelabel);
+   redraw_label();
+ }
+ 
+ 
+ void Fl_Widget::copy_label(const char *a) {
+-  // reassigning a copied label remains the same copied label
+-  if ((flags() & COPIED_LABEL) && (label_.value == a))
++  void *freelabel=NULL;
++  if (flags() & COPIED_LABEL) {
++  	if (a==label_.value) {
+     return;
+-  if (a) {
+-    label(strdup(a));
++  	}
++    freelabel=(void *)(label_.value);
++  }
++  if (a && (label_.value=strdup(a))!=NULL) {
+     set_flag(COPIED_LABEL);
+   } else {
+-    label(0);
++    clear_flag(COPIED_LABEL);
++    label_.value=(char *)0;
+   }
++  // remove old label if existed
++  free(freelabel);
++
++  redraw_label();
+ }
+ 
+ /** Calls the widget callback function with arbitrary arguments.
+Index: src/Fl_Window.cxx
+===================================================================
+--- src/Fl_Window.cxx	(revision 13043)
++++ src/Fl_Window.cxx	(working copy)
+@@ -156,9 +156,18 @@
+ 
+ /** Sets the window titlebar label to a copy of a character string */
+ void Fl_Window::copy_label(const char *a) {
+-  Fl_Widget::copy_label(a);
+-  label(label(), iconlabel());	// platform dependent
++  // don't delete old label until new label established
++  void *freelabel=NULL;
++  if (flags() & COPIED_LABEL) {
++    freelabel=(void*) label();
+ }
++  // create new label copy
++  if (a) a = strdup(a);
++  label(a, iconlabel());
++  set_flag(COPIED_LABEL);
++  // remove old label if it existed
++  free(freelabel);
++}
+ 
+ void Fl_Window::iconlabel(const char *iname) {
+   label(label(), iname);	// platform dependent
+Index: src/Fl_x.cxx
+===================================================================
+--- src/Fl_x.cxx	(revision 13043)
++++ src/Fl_x.cxx	(working copy)
+@@ -216,7 +216,7 @@
+   // we send FL_LEAVE only if the mouse did not enter some other window:
+   if (!in_a_window) Fl::handle(FL_LEAVE, 0);
+ #if CONSOLIDATE_MOTION
+-  else if (send_motion == fl_xmousewin) {
++  else if (send_motion == fl_xmousewin && send_motion!=0) {
+     send_motion = 0;
+     Fl::handle(FL_MOVE, fl_xmousewin);
+   }
+@@ -1271,6 +1271,13 @@
+   fl_xevent = &thisevent;
+   Window xid = xevent.xany.window;
+ 
++#if 0
++if (xevent.type>=LASTEvent) {
++  printf("xevent %d occured\n", xevent.type);
++}
++else printf("xevent %s occured\n", debugtext[xevent.type]);
++#endif
++
+   if (fl_xim_ic && xevent.type == DestroyNotify &&
+         xid != fl_xim_win && !fl_find(xid))
+   {
+@@ -1937,6 +1944,9 @@
+     break;
+   
+   case ButtonPress:
++#if 0
++printf("ButtonPress: %Xh  state: %Xh\n", xevent.xbutton.button , xevent.xbutton.state);
++#endif
+     Fl::e_keysym = FL_Button + xevent.xbutton.button;
+     set_event_xy(window);
+     Fl::e_dx = Fl::e_dy = 0;
+Index: src/Makefile
+===================================================================
+--- src/Makefile	(revision 13043)
++++ src/Makefile	(working copy)
+@@ -31,6 +31,7 @@
+ 	Fl_Chart.cxx \
+ 	Fl_Check_Browser.cxx \
+ 	Fl_Check_Button.cxx \
++	Fl_Checkbox_Browser.cxx \
+ 	Fl_Choice.cxx \
+ 	Fl_Clock.cxx \
+ 	Fl_Color_Chooser.cxx \
+Index: test/input.cxx
+===================================================================
+--- test/input.cxx	(revision 13043)
++++ test/input.cxx	(working copy)
+@@ -98,20 +98,29 @@
+   int y = 10;
+   input[0] = new Fl_Input(70,y,300,30,"Normal:"); y += 35;
+   input[0]->tooltip("Normal input field");
++  input[0]->unicode_input(1);
++  input[0]->unicode_single_byte(1);
+   // input[0]->cursor_color(FL_SELECTION_COLOR);
+   // input[0]->maximum_size(20);
+   // input[0]->static_value("this is a testgarbage");
++
+   input[1] = new Fl_Float_Input(70,y,300,30,"Float:"); y += 35;
+   input[1]->tooltip("Input field for floating-point number (F1)");
+   input[1]->shortcut(FL_F+1);
++  input[1]->unicode_input(1);
++
+   input[2] = new Fl_Int_Input(70,y,300,30,"Int:"); y += 35;
+   input[2]->tooltip("Input field for integer number (F2)");
+   input[2]->shortcut(FL_F+2);
++
+   input[3] = new Fl_Secret_Input(70,y,300,30,"&Secret:"); y += 35;
+   input[3]->tooltip("Input field for password (Alt-S)");
++  input[3]->unicode_input(1);
++
+   input[4] = new Fl_Multiline_Input(70,y,300,100,"&Multiline:"); y += 105;
+   input[4]->tooltip("Input field for short text with newlines (Alt-M)");
+   input[4]->wrap(1);
++  input[4]->unicode_input(1);
+ 
+   for (int i = 0; i < 4; i++) {
+     input[i]->when(0); input[i]->callback(cb);
