@@ -267,6 +267,7 @@ int calc_browser_height(Fl_Browser_ *browser, int num_items)
 	// (incr_size is protected)
 	float sf=Fl::screen_scale(0);
 	return (5/sf)+((browser->textsize()+2)*num_items);
+  //return fl_height()*num_items;
 }
 
 //-------------------------------------------------------------------------
@@ -783,7 +784,9 @@ void create_inputbox(gchar *optarg, gchar *options[], gint entries)
 		if (Xdialog.passwd)	{
 			Fl_Check_Button *typing_hide = new Fl_Check_Button(CLIENT_BORDER_SIZE, next_y, clientwidth, XDIALOG_BUTTON_HEIGHT, 0);
 			typing_hide->label("Hide typing");
+			typing_hide->set();
 			typing_hide->callback(HidetypingCallback);
+			input->type(FL_SECRET_INPUT);
 		}
 	}
 
@@ -963,7 +966,7 @@ void create_buildlist(gchar *optarg, gchar *options[], gint list_size)
 	//////
   char temp[MAX_LABEL_LENGTH];
 	Xdialog_array(list_size);
-	for (int i = 0; i < list_size;i++)
+	for (ssize_t i = 0; i < list_size;i++)
 	{
 		strcpysafe(Xdialog.array[i].tag, options[params*i], MAX_ITEM_LENGTH);
 		Xdialog.array[i].state=item_status(options[(params*i)+2], Xdialog.array[i].tag);

@@ -92,7 +92,7 @@ static void OutputBuildList()
 	Fl_Browser *second = (Fl_Browser *)Xdialog.widget2;
 	for(int i=1;i<second->size()+1;i++) {
 		// find what tag it is by looking for name
-		int index=(int) second->data(i);
+		ssize_t index=(ssize_t) second->data(i);
 		fprintf(Xdialog.output,"|%s", Xdialog.array[index].tag);
 	}
 }
