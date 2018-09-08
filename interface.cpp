@@ -386,7 +386,9 @@ static int create_buttons(int next_y)
 		btn->label(labels[b]);
 		btn->callback(callbacks[b]);
 		btn->shortcut(shortcuts[b]);
-    btn->click_on_enter_key(1);
+		#if !defined(NO_FLTK_PATCH)
+		btn->click_on_enter_key(1);
+		#endif
 	}
 
 
@@ -848,17 +850,17 @@ void create_spinbox(gchar *optarg, gchar *options[], gint spins)
 
 void create_itemlist(char *optarg, int type, char *options[], int list_size)
 {
-  char temp[MAX_ITEM_LENGTH];
-  char *_optarg=new char[MAX_LABEL_LENGTH];
-  trim_string(optarg,_optarg,MAX_LABEL_LENGTH);
+	char temp[MAX_ITEM_LENGTH];
+	char *_optarg=new char[MAX_LABEL_LENGTH];
+	trim_string(optarg,_optarg,MAX_LABEL_LENGTH);
 
-  // calc number of params per listbox item
-  int params=3+Xdialog.tips;
+	// calc number of params per listbox item
+	int params=3+Xdialog.tips;
 
-  open_window();
+	open_window();
 
-  // compute client width area
-  int clientwidth=Xdialog.window->w()-(CLIENT_BORDER_SIZE*2);
+	// compute client width area
+	int clientwidth=Xdialog.window->w()-(CLIENT_BORDER_SIZE*2);
 
 
 	int next_y=set_label(CLIENT_BORDER_SIZE, Xdialog.title, false);
@@ -871,8 +873,10 @@ void create_itemlist(char *optarg, int type, char *options[], int list_size)
 
 	Fl_Check_Browser *browser = new Fl_Check_Browser(CLIENT_BORDER_SIZE, browser_y, clientwidth, browser_h);
 
-  browser->full_kb_select(1);
-
+	#if !defined(NO_FLTK_PATCH)
+	browser->full_kb_select(1);
+	#endif
+	
 	// get the actual height of items
 	browser_h=calc_browser_height(browser, Xdialog.list_height);
 	browser->size(browser->w(), browser_h);
@@ -935,8 +939,10 @@ void create_buildlist(gchar *optarg, gchar *options[], gint list_size)
 	int browser_h=Xdialog.list_height * ymult;
 
 	Fl_Browser *first_Browser = new Fl_Browser(CLIENT_BORDER_SIZE, next_y, clientwidth*0.4, browser_h);
-  first_Browser->full_kb_select(1);
+	#if !defined(NO_FLTK_PATCH)
+	first_Browser->full_kb_select(1);
 	first_Browser->item_shortcuts(TRUE);
+	#endif
 	first_Browser->callback(BrowserCallback);
 
 	// get the actual height of items
@@ -950,8 +956,10 @@ void create_buildlist(gchar *optarg, gchar *options[], gint list_size)
 
 
 	Fl_Browser *second_Browser = new Fl_Browser(CLIENT_BORDER_SIZE + (clientwidth*0.6), next_y, clientwidth*0.4, browser_h);
+	#if !defined(NO_FLTK_PATCH)
 	second_Browser->full_kb_select(1);
 	second_Browser->item_shortcuts(TRUE);
+	#endif
 	second_Browser->callback(BrowserCallback);
 
 
@@ -1036,8 +1044,10 @@ void create_menubox(gchar *optarg, gchar *options[], gint list_size)
 	int browser_h=Xdialog.list_height * ymult;
 
 	Fl_Browser *browser = new Fl_Browser(CLIENT_BORDER_SIZE, next_y, clientwidth, browser_h, 0);
-  browser->full_kb_select(1);
+	#if !defined(NO_FLTK_PATCH)
+	browser->full_kb_select(1);
 	browser->item_shortcuts(TRUE);
+	#endif
 	browser->callback(BrowserCallback);
 
 	// get the actual height of items

@@ -5,6 +5,8 @@
 
  */
 
+// #define NO_FLTK_PATCH
+
 #ifdef HAVE_CONFIG_H
 #	include <config.h>
 #endif

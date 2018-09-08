@@ -753,18 +753,19 @@ int main(int argc, char *argv[])
 */
 
   Fl::lock();
-  //Fl::scheme("plastic");
-  Fl::scheme("smooth");
+  #if !defined(NO_FLTK_PATCH)
+	Fl::scheme("smooth");
+	// Fl::new_shortcut_logic=true;
+	fl_force_wrap_breaks=1;
+  #else
+    Fl::scheme("gtk+");
+  #endif
   Fl::background(182, 198, 255);
   Fl::get_system_colors();
-	fl_force_wrap_breaks=1;
-  //Fl::copy_labels(TRUE);
   FL_NORMAL_SIZE=12;
-//  Fl::new_shortcut_logic=true;
   if (Fl::w()>1200) {
     Fl::screen_scale(0, Fl::w()/1200.0);
   }
-
 
 	opterr = 0;
 
